@@ -6,6 +6,7 @@ public static class IconFactory
 {
     private static Sprite? _syncSprite;
     private static Sprite? _lockSprite;
+    private static Sprite? _textPadSprite;
 
     public static Sprite GetSyncIcon()
     {
@@ -89,5 +90,50 @@ public static class IconFactory
         tex.Apply();
         _lockSprite = Sprite.Create(tex, new Rect(0, 0, 16, 16), new Vector2(0.5f, 0.5f));
         return _lockSprite;
+    }
+
+    public static Sprite GetTextPadIcon()
+    {
+        if (_textPadSprite != null)
+        {
+            return _textPadSprite;
+        }
+
+        var tex = new Texture2D(16, 16, TextureFormat.RGBA32, false);
+        tex.filterMode = FilterMode.Point;
+        var clear = new Color(0f, 0f, 0f, 0f);
+        var white = Color.white;
+
+        for (int y = 0; y < 16; y++)
+        {
+            for (int x = 0; x < 16; x++)
+            {
+                tex.SetPixel(x, y, clear);
+            }
+        }
+
+        // Clip / top binding
+        for (int x = 6; x <= 9; x++) tex.SetPixel(x, 14, white);
+
+        // Pad outline
+        for (int x = 3; x <= 12; x++)
+        {
+            tex.SetPixel(x, 13, white);
+            tex.SetPixel(x, 1, white);
+        }
+        for (int y = 1; y <= 13; y++)
+        {
+            tex.SetPixel(3, y, white);
+            tex.SetPixel(12, y, white);
+        }
+
+        // Ruled text lines
+        for (int x = 5; x <= 10; x++) tex.SetPixel(x, 10, white);
+        for (int x = 5; x <= 10; x++) tex.SetPixel(x, 7, white);
+        for (int x = 5; x <= 8; x++) tex.SetPixel(x, 4, white);
+
+        tex.Apply();
+        _textPadSprite = Sprite.Create(tex, new Rect(0, 0, 16, 16), new Vector2(0.5f, 0.5f));
+        return _textPadSprite;
     }
 }

@@ -19,13 +19,39 @@ public static class DataGridDrawer
             return false;
         }
 
-        var text = entry.ConfigEntry?.BoxedValue as string;
-        if (text == null || text.Length == 0)
+        if (entry.CustomDrawer != null)
         {
             return false;
         }
 
-        return text.Contains(":") && (text.Contains(",") || text.Contains("\n"));
+        var keyLower = entry.Key.ToLowerInvariant();
+        var descLower = entry.Description.ToLowerInvariant();
+        var val = entry.ConfigEntry?.BoxedValue as string ?? string.Empty;
+
+        if (val.Contains("{0}") || val.Contains("{1}") || keyLower.EndsWith("string") || keyLower.Contains("format") || keyLower.Contains("template"))
+        {
+            return false;
+        }
+
+        var hasColon = val.Contains(":");
+        var isDelimited = val.Contains(",") || val.Contains("\n") || val.Contains(";");
+
+        if (hasColon && isDelimited)
+        {
+            return true;
+        }
+
+        if (descLower.Contains("item:qty") || descLower.Contains("prefab:amount") || descLower.Contains("item:amount"))
+        {
+            return true;
+        }
+
+        if ((keyLower.Contains("recipe") || keyLower.Contains("requirement") || (keyLower.Contains("cost") && !keyLower.Contains("string"))) && hasColon)
+        {
+            return true;
+        }
+
+        return false;
     }
 
     public static GameObject Draw(Transform parent, SettingEntry entry)
@@ -38,119 +64,163 @@ public static class DataGridDrawer
         var raw = entry.ConfigEntry?.BoxedValue as string ?? string.Empty;
         var rows = ParseRows(raw);
 
-        GameObject? tableContainer = null;
-        TextMeshProUGUI? toggleBtnText = null;
+        GameObject? subpanelObj = null;
+        TextMeshProUGUI? labelTmp = null;
         var isExpanded = false;
+
+        var arrowColorHex = ColorUtility.ToHtmlStringRGB(CyberPalette.ColorGlacialMint);
+        var countColorHex = ColorUtility.ToHtmlStringRGB(CyberPalette.ColorTextMuted);
+        void UpdateLeftLabel()
+        {
+            if (labelTmp != null)
+            {
+                var arrow = isExpanded ? "▼" : "▶";
+                var itemWord = rows.Count == 1 ? "item" : "items";
+                var countText = $"({rows.Count} {itemWord})";
+                labelTmp.richText = true;
+                labelTmp.text = $"<color=#{arrowColorHex}><b>{arrow}</b></color>  {entry.DispName}  <color=#{countColorHex}>{countText}</color>";
+            }
+        }
 
         var rowObj = DrawerDispatcher.CreateRowContainer(parent, entry, out var valueArea, () =>
         {
             raw = entry.ConfigEntry?.BoxedValue as string ?? string.Empty;
             rows = ParseRows(raw);
-            if (toggleBtnText != null)
+            UpdateLeftLabel();
+            if (subpanelObj != null)
             {
-                toggleBtnText.text = isExpanded ? $"{rows.Count} Items  v" : $"{rows.Count} Items  >";
-            }
-            if (tableContainer != null)
-            {
-                RebuildTableRows(tableContainer.transform, rows, entry, toggleBtnText, () => isExpanded, parent);
+                RebuildSubpanel(subpanelObj.transform, rows, entry, parent as RectTransform, UpdateLeftLabel);
             }
         });
 
-        var toggleBtn = UiFactory.CreateCyberButton(valueArea, "ToggleGridBtn", $"{rows.Count} Items  >", () =>
+        var leftRT = rowObj.transform.Find("Fill/LeftArea")?.GetComponent<RectTransform>();
+        if (leftRT != null)
+        {
+            leftRT.offsetMax = new Vector2(-80f, 0f);
+        }
+
+        labelTmp = rowObj.transform.Find("Fill/LeftArea/Label")?.GetComponent<TextMeshProUGUI>();
+        if (labelTmp != null)
+        {
+            labelTmp.raycastTarget = false;
+        }
+        UpdateLeftLabel();
+
+        Action toggleAction = () =>
         {
             isExpanded = !isExpanded;
-            if (tableContainer != null)
+            if (subpanelObj != null)
             {
-                tableContainer.SetActive(isExpanded);
+                subpanelObj.SetActive(isExpanded);
             }
-            if (toggleBtnText != null)
-            {
-                toggleBtnText.text = isExpanded ? $"{rows.Count} Items  v" : $"{rows.Count} Items  >";
-            }
+            UpdateLeftLabel();
             if (parent is RectTransform pRT)
             {
                 LayoutRebuilder.ForceRebuildLayoutImmediate(pRT);
             }
-        }, CyberPalette.ColorCyberTeal, CyberPalette.ColorIceBlueBright, 70f, 22f);
+        };
 
-        toggleBtn.transform.SetAsFirstSibling();
-        toggleBtnText = toggleBtn.GetComponentInChildren<TextMeshProUGUI>();
+        DrawerDispatcher.AttachBarToggle(rowObj, toggleAction);
 
-        tableContainer = UiFactory.CreatePanel(parent, $"GridTable_{entry.Key}", CyberPalette.ColorBorderSubtle, CyberPalette.ColorVoidBlack, 1f);
-        tableContainer.transform.SetSiblingIndex(rowObj.transform.GetSiblingIndex() + 1);
+        subpanelObj = new GameObject($"SubGrid_{entry.Key}", typeof(RectTransform), typeof(Image), typeof(VerticalLayoutGroup), typeof(ContentSizeFitter));
+        subpanelObj.transform.SetParent(parent, false);
+        subpanelObj.transform.SetSiblingIndex(rowObj.transform.GetSiblingIndex() + 1);
 
-        var tableLayout = tableContainer.AddComponent<VerticalLayoutGroup>();
-        tableLayout.spacing = 3f;
-        tableLayout.padding = new RectOffset(16, 8, 6, 6);
-        tableLayout.childControlWidth = true;
-        tableLayout.childControlHeight = true;
-        tableLayout.childForceExpandWidth = true;
-        tableLayout.childForceExpandHeight = false;
+        var bgImg = subpanelObj.GetComponent<Image>();
+        bgImg.color = CyberPalette.ColorVoidBlack;
 
-        var tableCsf = tableContainer.AddComponent<ContentSizeFitter>();
-        tableCsf.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+        var vlg = subpanelObj.GetComponent<VerticalLayoutGroup>();
+        vlg.spacing = 3f;
+        vlg.padding = new RectOffset(16, 12, 6, 6);
+        vlg.childControlWidth = true;
+        vlg.childControlHeight = true;
+        vlg.childForceExpandWidth = true;
+        vlg.childForceExpandHeight = false;
 
-        RebuildTableRows(tableContainer.transform, rows, entry, toggleBtnText, () => isExpanded, parent);
-        tableContainer.SetActive(false);
+        var csf = subpanelObj.GetComponent<ContentSizeFitter>();
+        csf.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+        var le = subpanelObj.AddComponent<LayoutElement>();
+        le.flexibleWidth = 1f;
+
+        RebuildSubpanel(subpanelObj.transform, rows, entry, parent as RectTransform, UpdateLeftLabel);
+        subpanelObj.SetActive(false);
 
         return rowObj;
     }
 
     private static List<string> ParseRows(string raw)
     {
-        return raw.Split(new[] { ',', '\n' }, StringSplitOptions.RemoveEmptyEntries)
+        return raw.Split(new[] { ',', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries)
                   .Select(r => r.Trim())
                   .Where(r => !string.IsNullOrEmpty(r))
                   .ToList();
     }
 
-    private static void RebuildTableRows(Transform container, List<string> rows, SettingEntry entry, TextMeshProUGUI? toggleBtnText, Func<bool> getExpanded, Transform parentList)
+    private static void RebuildSubpanel(Transform subpanel, List<string> rows, SettingEntry entry, RectTransform? parentListRT, Action? onCountChanged)
     {
-        var fill = container.Find("Fill");
-        var target = fill != null ? fill : container;
-
-        foreach (Transform child in target)
+        foreach (Transform child in subpanel)
         {
             UnityEngine.Object.Destroy(child.gameObject);
         }
 
+        var headerRow = new GameObject("HeaderRow", typeof(RectTransform), typeof(HorizontalLayoutGroup));
+        headerRow.transform.SetParent(subpanel, false);
+        var hHlg = headerRow.GetComponent<HorizontalLayoutGroup>();
+        hHlg.spacing = 4f;
+        hHlg.childAlignment = TextAnchor.MiddleLeft;
+        hHlg.childControlWidth = false;
+        hHlg.childControlHeight = true;
+        hHlg.childForceExpandWidth = false;
+        hHlg.childForceExpandHeight = false;
+
+        var hLe = headerRow.AddComponent<LayoutElement>();
+        hLe.minHeight = 16f;
+        hLe.preferredHeight = 16f;
+        hLe.flexibleHeight = 0f;
+
+        var itemLabel = UiFactory.CreateLabel(headerRow.transform, "HItem", "ITEM / PREFAB", CyberPalette.ColorTextMuted, 9f);
+        itemLabel.GetComponent<RectTransform>().sizeDelta = new Vector2(120f, 16f);
+
+        var qtyLabel = UiFactory.CreateLabel(headerRow.transform, "HQty", "QTY", CyberPalette.ColorTextMuted, 9f);
+        qtyLabel.GetComponent<RectTransform>().sizeDelta = new Vector2(45f, 16f);
+
         for (int i = 0; i < rows.Count; i++)
         {
             var rowIndex = i;
-            RenderDataRow(target, rows, rowIndex, entry, () =>
+            RenderDataRow(subpanel, rows, rowIndex, entry, () =>
             {
                 entry.SetValue(string.Join(",", rows));
-                if (toggleBtnText != null)
-                {
-                    toggleBtnText.text = getExpanded() ? $"{rows.Count} Items  v" : $"{rows.Count} Items  >";
-                }
             }, () =>
             {
-                RebuildTableRows(container, rows, entry, toggleBtnText, getExpanded, parentList);
+                onCountChanged?.Invoke();
+                RebuildSubpanel(subpanel, rows, entry, parentListRT, onCountChanged);
             });
         }
 
-        var addBtn = UiFactory.CreateCyberButton(target, "AddRowBtn", "+ Add Entry", () =>
+        if (entry.CanEdit)
         {
-            rows.Add("Item:1");
-            entry.SetValue(string.Join(",", rows));
-            RebuildTableRows(container, rows, entry, toggleBtnText, getExpanded, parentList);
-            if (toggleBtnText != null)
+            var addBtn = UiFactory.CreateCyberButton(subpanel, "AddRowBtn", "+ Add Item", () =>
             {
-                toggleBtnText.text = getExpanded() ? $"{rows.Count} Items  v" : $"{rows.Count} Items  >";
-            }
-            if (parentList is RectTransform pRT)
-            {
-                LayoutRebuilder.ForceRebuildLayoutImmediate(pRT);
-            }
-        }, CyberPalette.ColorGlacialMint, CyberPalette.ColorGlacialMint, -1f, 22f);
+                rows.Add("Item:1");
+                entry.SetValue(string.Join(",", rows));
+                onCountChanged?.Invoke();
+                RebuildSubpanel(subpanel, rows, entry, parentListRT, onCountChanged);
+                if (parentListRT != null)
+                {
+                    LayoutRebuilder.ForceRebuildLayoutImmediate(parentListRT);
+                }
+            }, CyberPalette.ColorGlacialMint, CyberPalette.ColorGlacialMint, 90f, 20f);
 
-        var addLayout = addBtn.GetComponent<LayoutElement>();
-        addLayout.flexibleWidth = 1f;
+            var addLe = addBtn.GetComponent<LayoutElement>();
+            addLe.minHeight = 20f;
+            addLe.preferredHeight = 20f;
+            addLe.flexibleHeight = 0f;
+        }
 
-        if (parentList is RectTransform parentRT)
+        if (parentListRT != null)
         {
-            LayoutRebuilder.ForceRebuildLayoutImmediate(parentRT);
+            LayoutRebuilder.ForceRebuildLayoutImmediate(parentListRT);
         }
     }
 
@@ -176,16 +246,16 @@ public static class DataGridDrawer
         le.minHeight = 22f;
         le.preferredHeight = 22f;
         le.flexibleHeight = 0f;
-        le.flexibleWidth = 1f;
 
-        UiFactory.CreateInputField(rowObj.transform, "ColName", namePart, newName =>
+        var (_, inName) = UiFactory.CreateInputField(rowObj.transform, "ColName", namePart, newName =>
         {
             parts[0] = newName;
             rows[index] = string.Join(":", parts);
             onModified?.Invoke();
-        }, 130f, 22f);
+        }, 120f, 22f);
+        inName.interactable = entry.CanEdit;
 
-        UiFactory.CreateInputField(rowObj.transform, "ColAmount", amountPart, newAmount =>
+        var (_, inQty) = UiFactory.CreateInputField(rowObj.transform, "ColAmount", amountPart, newAmount =>
         {
             if (parts.Length > 1)
             {
@@ -194,13 +264,17 @@ public static class DataGridDrawer
             rows[index] = string.Join(":", parts);
             onModified?.Invoke();
         }, 45f, 22f);
+        inQty.interactable = entry.CanEdit;
 
-        UiFactory.CreateCyberButton(rowObj.transform, "DeleteBtn", "X", () =>
+        if (entry.CanEdit)
         {
-            rows.RemoveAt(index);
-            entry.SetValue(string.Join(",", rows));
-            onModified?.Invoke();
-            onRebuild?.Invoke();
-        }, CyberPalette.ColorErrorRed, CyberPalette.ColorErrorRed, 22f, 20f);
+            UiFactory.CreateCyberButton(rowObj.transform, "DeleteBtn", "X", () =>
+            {
+                rows.RemoveAt(index);
+                entry.SetValue(string.Join(",", rows));
+                onModified?.Invoke();
+                onRebuild?.Invoke();
+            }, CyberPalette.ColorErrorRed, CyberPalette.ColorErrorRed, 22f, 20f);
+        }
     }
 }

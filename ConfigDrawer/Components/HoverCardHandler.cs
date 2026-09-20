@@ -6,6 +6,7 @@ using BepInEx.ConfigDrawers.UI;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.UI;
 
 namespace BepInEx.ConfigDrawers.Components;
 
@@ -17,7 +18,7 @@ public class HoverCardHandler : MonoBehaviour, IPointerEnterHandler, IPointerExi
     private static TextMeshProUGUI? _headerText;
     private static TextMeshProUGUI? _bodyText;
     private static TextMeshProUGUI? _badgeText;
-    private const float HoverDelaySeconds = 0.35f;
+    private const float HoverDelaySeconds = 0.4f;
 
     public void Bind(SettingEntry entry)
     {
@@ -27,6 +28,11 @@ public class HoverCardHandler : MonoBehaviour, IPointerEnterHandler, IPointerExi
     public void OnPointerEnter(PointerEventData eventData)
     {
         if (_entry == null)
+        {
+            return;
+        }
+
+        if (IsCursorOverInput(eventData))
         {
             return;
         }
@@ -55,9 +61,47 @@ public class HoverCardHandler : MonoBehaviour, IPointerEnterHandler, IPointerExi
         HideCard();
     }
 
+    private void Update()
+    {
+        if (_cardRoot != null && _cardRoot.activeSelf)
+        {
+            if (EventSystem.current != null)
+            {
+                var selected = EventSystem.current.currentSelectedGameObject;
+                if (selected != null && selected.GetComponentInParent<TMP_InputField>() != null)
+                {
+                    HideCard();
+                }
+            }
+        }
+    }
+
+    private static bool IsCursorOverInput(PointerEventData? eventData)
+    {
+        if (eventData?.pointerEnter != null && eventData.pointerEnter.GetComponentInParent<TMP_InputField>() != null)
+        {
+            return true;
+        }
+
+        if (EventSystem.current != null)
+        {
+            var selected = EventSystem.current.currentSelectedGameObject;
+            if (selected != null && selected.GetComponentInParent<TMP_InputField>() != null)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private IEnumerator ShowAfterDelay(Vector2 mousePos)
     {
         yield return new WaitForSecondsRealtime(HoverDelaySeconds);
+        if (IsCursorOverInput(null))
+        {
+            yield break;
+        }
         ShowCard(mousePos);
         _hoverRoutine = null;
     }
@@ -75,18 +119,43 @@ public class HoverCardHandler : MonoBehaviour, IPointerEnterHandler, IPointerExi
             return;
         }
 
-        _headerText.text = $"{_entry.DispName} <color=#{ColorUtility.ToHtmlStringRGB(CyberPalette.ColorTextMuted)}>({_entry.Section})</color>";
+        _headerText.text = $"<b><noparse>{_entry.DispName}</noparse></b>";
         _bodyText.text = !string.IsNullOrEmpty(_entry.Description) ? _entry.Description : "No description provided.";
 
         var badges = new StringBuilder();
-        if (_entry.DefaultValue != null)
+        if (!string.IsNullOrEmpty(_entry.Section))
         {
-            badges.Append($"<color=#{ColorUtility.ToHtmlStringRGB(CyberPalette.ColorIceBlueBright)}>[DEFAULT: {_entry.DefaultValue}]</color>  ");
+            badges.Append($"<color=#{ColorUtility.ToHtmlStringRGB(CyberPalette.ColorTextMuted)}>[<noparse>{_entry.Section}</noparse>]</color>  ");
         }
 
-        if (_entry.IsAdminOnly || !_entry.IsUnlocked)
+        if (_entry.DefaultValue != null)
         {
-            badges.Append($"<color=#{ColorUtility.ToHtmlStringRGB(CyberPalette.ColorWarningAmber)}>[SERVERSYNC LOCKED]</color>  ");
+            var defVal = _entry.DefaultValue.ToString() ?? string.Empty;
+            if (_entry.SettingType == typeof(string))
+            {
+                defVal = defVal.Replace("\r\n", "\\n").Replace("\n", "\\n").Replace("\r", "\\n");
+                if (string.IsNullOrEmpty(defVal))
+                {
+                    defVal = "\"\"";
+                }
+            }
+            badges.Append($"<color=#{ColorUtility.ToHtmlStringRGB(CyberPalette.ColorIceBlueBright)}>[DEFAULT: <noparse>{defVal}</noparse>]</color>  ");
+        }
+
+        if (_entry.IsAdminOnly)
+        {
+            if (_entry.CanEdit)
+            {
+                badges.Append($"<color=#{ColorUtility.ToHtmlStringRGB(CyberPalette.ColorGlacialMint)}>[SYNC: UNLOCKED]</color>  ");
+            }
+            else
+            {
+                badges.Append($"<color=#{ColorUtility.ToHtmlStringRGB(CyberPalette.ColorWarningAmber)}>[SYNC: LOCKED]</color>  ");
+            }
+        }
+        else if (_entry.ReadOnly)
+        {
+            badges.Append($"<color=#{ColorUtility.ToHtmlStringRGB(CyberPalette.ColorWarningAmber)}>[READ-ONLY]</color>  ");
         }
 
         if (_entry.IsDirty)
@@ -97,9 +166,28 @@ public class HoverCardHandler : MonoBehaviour, IPointerEnterHandler, IPointerExi
         _badgeText.text = badges.ToString().TrimEnd();
 
         var rt = _cardRoot.GetComponent<RectTransform>();
-        var clampedX = Mathf.Clamp(screenPos.x + 16f, 10f, Screen.width - rt.rect.width - 10f);
-        var clampedY = Mathf.Clamp(screenPos.y - 16f, rt.rect.height + 10f, Screen.height - 10f);
-        rt.position = new Vector3(clampedX, clampedY, 0f);
+        LayoutRebuilder.ForceRebuildLayoutImmediate(rt);
+
+        var cardW = rt.rect.width > 0f ? rt.rect.width : 250f;
+        var cardH = rt.rect.height > 0f ? rt.rect.height : 75f;
+
+        var posX = screenPos.x + 18f;
+        if (posX + cardW > Screen.width - 10f)
+        {
+            posX = screenPos.x - cardW - 10f;
+        }
+
+        var posY = screenPos.y + cardH + 12f;
+        if (posY > Screen.height - 10f)
+        {
+            posY = screenPos.y - 12f;
+        }
+        if (posY - cardH < 10f)
+        {
+            posY = cardH + 10f;
+        }
+
+        rt.position = new Vector3(Mathf.Clamp(posX, 10f, Screen.width - cardW - 10f), Mathf.Clamp(posY, cardH + 10f, Screen.height - 10f), 0f);
 
         _cardRoot.SetActive(true);
     }
@@ -125,34 +213,46 @@ public class HoverCardHandler : MonoBehaviour, IPointerEnterHandler, IPointerExi
             return;
         }
 
-        _cardRoot = UiFactory.CreatePanel(canvas.transform, "HoverCard", CyberPalette.ColorIceBlue, CyberPalette.ColorVoidBlack, 1f);
+        _cardRoot = UiFactory.CreatePanel(canvas.transform, "HoverCard", CyberPalette.ColorBorderSubtle, CyberPalette.ColorVoidBlack, 1f);
         var rt = _cardRoot.GetComponent<RectTransform>();
-        rt.sizeDelta = new Vector2(340f, 160f);
         rt.pivot = new Vector2(0f, 1f);
+        rt.sizeDelta = new Vector2(250f, 0f);
 
-        var fill = _cardRoot.transform.Find("Fill");
-        var target = fill != null ? fill : _cardRoot.transform;
+        var le = _cardRoot.AddComponent<LayoutElement>();
+        le.preferredWidth = 250f;
+        le.flexibleWidth = 0f;
 
-        _headerText = UiFactory.CreateLabel(target, "Header", "", CyberPalette.ColorIceBlueBright, 12f);
-        var headerRT = _headerText.GetComponent<RectTransform>();
-        headerRT.anchorMin = new Vector2(0f, 1f);
-        headerRT.anchorMax = new Vector2(1f, 1f);
-        headerRT.offsetMin = new Vector2(10f, -30f);
-        headerRT.offsetMax = new Vector2(-10f, -8f);
+        var csf = _cardRoot.AddComponent<ContentSizeFitter>();
+        csf.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
+        csf.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
 
-        _bodyText = UiFactory.CreateLabel(target, "Body", "", CyberPalette.ColorTextMain, 11f);
-        var bodyRT = _bodyText.GetComponent<RectTransform>();
-        bodyRT.anchorMin = new Vector2(0f, 0f);
-        bodyRT.anchorMax = new Vector2(1f, 1f);
-        bodyRT.offsetMin = new Vector2(10f, 32f);
-        bodyRT.offsetMax = new Vector2(-10f, -34f);
+        var fill = _cardRoot.transform.Find("Fill") ?? _cardRoot.transform;
 
-        _badgeText = UiFactory.CreateLabel(target, "Badges", "", CyberPalette.ColorWarningAmber, 10f);
-        var badgeRT = _badgeText.GetComponent<RectTransform>();
-        badgeRT.anchorMin = new Vector2(0f, 0f);
-        badgeRT.anchorMax = new Vector2(1f, 0f);
-        badgeRT.offsetMin = new Vector2(10f, 8f);
-        badgeRT.offsetMax = new Vector2(-10f, 28f);
+        var vlg = fill.gameObject.AddComponent<VerticalLayoutGroup>();
+        vlg.padding = new RectOffset(8, 8, 6, 6);
+        vlg.spacing = 3f;
+        vlg.childAlignment = TextAnchor.UpperLeft;
+        vlg.childControlWidth = true;
+        vlg.childControlHeight = true;
+        vlg.childForceExpandWidth = true;
+        vlg.childForceExpandHeight = false;
+
+        var fillCsf = fill.gameObject.AddComponent<ContentSizeFitter>();
+        fillCsf.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
+        fillCsf.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+        _headerText = UiFactory.CreateLabel(fill, "Header", "", CyberPalette.ColorIceBlueBright, 10f);
+        _headerText.textWrappingMode = TextWrappingModes.Normal;
+
+        _bodyText = UiFactory.CreateLabel(fill, "Body", "", CyberPalette.ColorTextMain, 9f);
+        _bodyText.textWrappingMode = TextWrappingModes.Normal;
+
+        _badgeText = UiFactory.CreateLabel(fill, "Badges", "", CyberPalette.ColorWarningAmber, 8.5f);
+        _badgeText.textWrappingMode = TextWrappingModes.Normal;
+
+        var canvasGroup = _cardRoot.AddComponent<CanvasGroup>();
+        canvasGroup.blocksRaycasts = false;
+        canvasGroup.interactable = false;
 
         _cardRoot.SetActive(false);
     }

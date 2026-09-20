@@ -17,4 +17,7 @@ public static class CyberPalette
     public static readonly Color ColorBorderSubtle = new Color(0.392f, 0.941f, 0.988f, 0.22f);
     public static readonly Color ColorBorderCard = new Color(0.125f, 0.230f, 0.340f, 0.85f);
     public static readonly Color ColorSeparator = new Color(0.392f, 0.941f, 0.988f, 0.16f);
+    public static readonly Color ColorInputGroove = new Color(0.12f, 0.20f, 0.28f, 0.85f);
+    public static readonly Color ColorInputWell = new Color(0.008f, 0.012f, 0.018f, 1.0f);
+    public static readonly Color ColorInputAccent = new Color(0.15f, 0.40f, 0.52f, 0.7f);
 }

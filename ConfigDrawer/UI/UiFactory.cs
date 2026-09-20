@@ -27,6 +27,46 @@ public static class UiFactory
         return Mathf.Round(baseSize * GetFontScaleFactor());
     }
 
+    private static TMP_FontAsset? _cachedTerminalFont;
+
+    public static TMP_FontAsset? ResolveTerminalFont()
+    {
+        if (_cachedTerminalFont != null && _cachedTerminalFont)
+        {
+            return _cachedTerminalFont;
+        }
+
+        try
+        {
+            var allFonts = Resources.FindObjectsOfTypeAll<TMP_FontAsset>();
+            if (allFonts != null && allFonts.Length > 0)
+            {
+                foreach (var f in allFonts)
+                {
+                    if (f != null && f && !string.IsNullOrEmpty(f.name))
+                    {
+                        var ln = f.name.ToLowerInvariant();
+                        if (ln.Contains("mono") || ln.Contains("console") || ln.Contains("code"))
+                        {
+                            if (f.characterTable != null && f.characterTable.Count > 0)
+                            {
+                                _cachedTerminalFont = f;
+                                return _cachedTerminalFont;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        catch
+        {
+            // Soft fallback
+        }
+
+        _cachedTerminalFont = ResolveFont();
+        return _cachedTerminalFont;
+    }
+
     public static TMP_FontAsset? ResolveFont()
     {
         if (_cachedFont != null && _cachedFont)
@@ -36,44 +76,50 @@ public static class UiFactory
 
         try
         {
-            if (TMP_Settings.defaultFontAsset != null && TMP_Settings.defaultFontAsset.characterTable != null && TMP_Settings.defaultFontAsset.characterTable.Count > 0)
-            {
-                _cachedFont = TMP_Settings.defaultFontAsset;
-                return _cachedFont;
-            }
-        }
-        catch
-        {
-            // Fallback to searching resources
-        }
-
-        try
-        {
             var allFonts = Resources.FindObjectsOfTypeAll<TMP_FontAsset>();
             if (allFonts != null && allFonts.Length > 0)
             {
-                foreach (var font in allFonts)
+                // Priority 1: Exact Valheim-AveriaSansLibre
+                foreach (var f in allFonts)
                 {
-                    if (font != null && font && string.Equals(font.name, "Valheim-AveriaSansLibre", StringComparison.OrdinalIgnoreCase))
+                    if (f != null && f && string.Equals(f.name, "Valheim-AveriaSansLibre", StringComparison.OrdinalIgnoreCase))
                     {
-                        if (font.characterTable != null && font.characterTable.Count > 0)
+                        if (f.characterTable != null && f.characterTable.Count > 0)
                         {
-                            _cachedFont = font;
+                            SetCachedFont(f);
                             return _cachedFont;
                         }
                     }
                 }
 
-                foreach (var font in allFonts)
+                // Priority 2: Valheim UI fonts excluding Norse, bold, and pixel prstart
+                foreach (var f in allFonts)
                 {
-                    if (font != null && font && !string.IsNullOrEmpty(font.name))
+                    if (f != null && f && !string.IsNullOrEmpty(f.name))
                     {
-                        var lowerName = font.name.ToLowerInvariant();
-                        if ((lowerName.Contains("valheim") || lowerName.Contains("averiasans")) && !lowerName.Contains("norse") && !lowerName.Contains("bold"))
+                        var ln = f.name.ToLowerInvariant();
+                        if ((ln.Contains("valheim") || ln.Contains("averia")) && !ln.Contains("norse") && !ln.Contains("bold") && !ln.Contains("prstart"))
                         {
-                            if (font.characterTable != null && font.characterTable.Count > 0)
+                            if (f.characterTable != null && f.characterTable.Count > 0)
                             {
-                                _cachedFont = font;
+                                SetCachedFont(f);
+                                return _cachedFont;
+                            }
+                        }
+                    }
+                }
+
+                // Priority 3: Clean standard fonts excluding pixel and norse
+                foreach (var f in allFonts)
+                {
+                    if (f != null && f && !string.IsNullOrEmpty(f.name))
+                    {
+                        var ln = f.name.ToLowerInvariant();
+                        if (!ln.Contains("prstart") && !ln.Contains("norse"))
+                        {
+                            if (f.characterTable != null && f.characterTable.Count > 0)
+                            {
+                                SetCachedFont(f);
                                 return _cachedFont;
                             }
                         }
@@ -83,50 +129,26 @@ public static class UiFactory
         }
         catch
         {
-            // Fallback to scene instances
-        }
-
-        try
-        {
-            var sceneTexts = Resources.FindObjectsOfTypeAll<TextMeshProUGUI>();
-            if (sceneTexts != null && sceneTexts.Length > 0)
-            {
-                foreach (var text in sceneTexts)
-                {
-                    if (text != null && text.font != null && text.font.characterTable != null && text.font.characterTable.Count > 0)
-                    {
-                        _cachedFont = text.font;
-                        return _cachedFont;
-                    }
-                }
-            }
-        }
-        catch
-        {
-            // Final fallback
-        }
-
-        try
-        {
-            var allFonts = Resources.FindObjectsOfTypeAll<TMP_FontAsset>();
-            if (allFonts != null)
-            {
-                foreach (var font in allFonts)
-                {
-                    if (font != null && font && font.characterTable != null && font.characterTable.Count > 0)
-                    {
-                        _cachedFont = font;
-                        return _cachedFont;
-                    }
-                }
-            }
-        }
-        catch
-        {
-            // Exhausted font search
+            // Soft fallback
         }
 
         return null;
+    }
+
+    private static void SetCachedFont(TMP_FontAsset font)
+    {
+        _cachedFont = font;
+        try
+        {
+            if (TMP_Settings.defaultFontAsset == null)
+            {
+                TMP_Settings.defaultFontAsset = font;
+            }
+        }
+        catch
+        {
+            // Soft fallback
+        }
     }
 
     public static void RefreshAllFonts(GameObject root)
@@ -140,9 +162,13 @@ public static class UiFactory
         var allTexts = root.GetComponentsInChildren<TextMeshProUGUI>(true);
         foreach (var text in allTexts)
         {
-            if (text != null && (text.font == null || text.font.characterTable == null || text.font.characterTable.Count == 0))
+            if (text != null)
             {
                 text.font = font;
+                if (font.material != null)
+                {
+                    text.fontSharedMaterial = font.material;
+                }
             }
         }
     }
@@ -155,17 +181,18 @@ public static class UiFactory
         var outerImg = outerObj.GetComponent<Image>();
         outerImg.color = borderColor;
 
-        var innerObj = new GameObject("Fill", typeof(RectTransform), typeof(Image));
-        innerObj.transform.SetParent(outerObj.transform, false);
+        var fillObj = new GameObject("Fill", typeof(RectTransform), typeof(Image));
+        fillObj.transform.SetParent(outerObj.transform, false);
 
-        var innerRT = innerObj.GetComponent<RectTransform>();
-        innerRT.anchorMin = Vector2.zero;
-        innerRT.anchorMax = Vector2.one;
-        innerRT.offsetMin = new Vector2(borderWidth, borderWidth);
-        innerRT.offsetMax = new Vector2(-borderWidth, -borderWidth);
+        var fillRT = fillObj.GetComponent<RectTransform>();
+        fillRT.anchorMin = Vector2.zero;
+        fillRT.anchorMax = Vector2.one;
+        var bw = Mathf.Max(borderWidth, 0.5f);
+        fillRT.offsetMin = new Vector2(bw, bw);
+        fillRT.offsetMax = new Vector2(-bw, -bw);
 
-        var innerImg = innerObj.GetComponent<Image>();
-        innerImg.color = fillColor;
+        var fillImg = fillObj.GetComponent<Image>();
+        fillImg.color = fillColor;
 
         return outerObj;
     }
@@ -173,8 +200,6 @@ public static class UiFactory
     public static GameObject CreateCyberButton(Transform parent, string name, string labelText, Action onClick, Color borderColor, Color textColor, float width = -1f, float height = 24f, bool enableHover = true)
     {
         var btnObj = CreatePanel(parent, name, borderColor, CyberPalette.ColorVoidBlack, 1f);
-        var btn = btnObj.AddComponent<Button>();
-        btn.onClick.AddListener(new UnityAction(onClick));
 
         var rt = btnObj.GetComponent<RectTransform>();
         var targetWidth = width > 0f ? width : 50f;
@@ -189,7 +214,8 @@ public static class UiFactory
         layout.flexibleWidth = 0f;
 
         var fillTransform = btnObj.transform.Find("Fill");
-        var textObj = new GameObject("Text", typeof(RectTransform), typeof(TextMeshProUGUI));
+        var textObj = new GameObject("Text", typeof(RectTransform));
+        textObj.SetActive(false);
         textObj.transform.SetParent(fillTransform != null ? fillTransform : btnObj.transform, false);
 
         var textRT = textObj.GetComponent<RectTransform>();
@@ -198,11 +224,15 @@ public static class UiFactory
         textRT.offsetMin = new Vector2(3f, 0f);
         textRT.offsetMax = new Vector2(-3f, 0f);
 
-        var tmp = textObj.GetComponent<TextMeshProUGUI>();
+        var tmp = textObj.AddComponent<TextMeshProUGUI>();
         var font = ResolveFont();
         if (font != null)
         {
             tmp.font = font;
+            if (font.material != null)
+            {
+                tmp.fontSharedMaterial = font.material;
+            }
         }
 
         tmp.text = labelText;
@@ -211,28 +241,45 @@ public static class UiFactory
         tmp.alignment = TextAlignmentOptions.Center;
         tmp.enableWordWrapping = false;
         tmp.overflowMode = TextOverflowModes.Overflow;
+        textObj.SetActive(true);
 
         if (enableHover)
         {
             var hover = btnObj.AddComponent<CyberHoverHandler>();
             var borderImg = btnObj.GetComponent<Image>();
             var fillImg = fillTransform != null ? fillTransform.GetComponent<Image>() : null;
-            hover.Init(borderImg, borderColor, CyberPalette.ColorIceBlueBright, fillImg, CyberPalette.ColorVoidBlack, CyberPalette.ColorCardSurface);
+            var isRed = borderColor == CyberPalette.ColorErrorRed;
+            var hoverBorder = isRed ? new Color(1f, 0.45f, 0.45f, 1f) : CyberPalette.ColorIceBlueBright;
+            var pressedBorder = isRed ? new Color(1f, 0.85f, 0.85f, 1f) : Color.white;
+            var hoverFill = isRed ? new Color(0.18f, 0.04f, 0.04f, 1f) : CyberPalette.ColorCardSurface;
+            var pressedFill = isRed ? new Color(0.35f, 0.08f, 0.08f, 1f) : new Color(0.12f, 0.22f, 0.32f, 1f);
+            var hoverText = isRed ? Color.white : CyberPalette.ColorIceBlueBright;
+            var pressedText = Color.white;
+            hover.Init(borderImg, borderColor, hoverBorder, fillImg, CyberPalette.ColorVoidBlack, hoverFill, pressedBorder, pressedFill, tmp, textColor, hoverText, pressedText);
         }
+
+        var btn = btnObj.AddComponent<Button>();
+        btn.transition = Selectable.Transition.None;
+        btn.onClick.AddListener(new UnityAction(onClick));
 
         return btnObj;
     }
 
     public static TextMeshProUGUI CreateLabel(Transform parent, string name, string text, Color color, float fontSize = 11f, TextAlignmentOptions alignment = TextAlignmentOptions.Left)
     {
-        var labelObj = new GameObject(name, typeof(RectTransform), typeof(TextMeshProUGUI));
+        var labelObj = new GameObject(name, typeof(RectTransform));
+        labelObj.SetActive(false);
         labelObj.transform.SetParent(parent, false);
 
-        var tmp = labelObj.GetComponent<TextMeshProUGUI>();
+        var tmp = labelObj.AddComponent<TextMeshProUGUI>();
         var font = ResolveFont();
         if (font != null)
         {
             tmp.font = font;
+            if (font.material != null)
+            {
+                tmp.fontSharedMaterial = font.material;
+            }
         }
 
         tmp.text = text;
@@ -242,12 +289,13 @@ public static class UiFactory
         tmp.enableWordWrapping = false;
         tmp.overflowMode = TextOverflowModes.Ellipsis;
 
+        labelObj.SetActive(true);
         return tmp;
     }
 
-    public static (GameObject Root, TMP_InputField Input) CreateInputField(Transform parent, string name, string initialText, Action<string> onCommit, float width = 120f, float height = 24f, string placeholderText = "")
+    public static (GameObject Root, TMP_InputField Input) CreateInputField(Transform parent, string name, string initialText, Action<string> onCommit, float width = 120f, float height = 24f, string placeholderText = "", bool multiline = false)
     {
-        var root = CreatePanel(parent, name, CyberPalette.ColorBorderSubtle, CyberPalette.ColorVoidBlack, 1f);
+        var root = CreatePanel(parent, name, CyberPalette.ColorInputGroove, CyberPalette.ColorInputWell, 1f);
         var targetWidth = width > 0f ? width : 120f;
 
         var rootRT = root.GetComponent<RectTransform>();
@@ -264,57 +312,146 @@ public static class UiFactory
         var fillTransform = root.transform.Find("Fill");
         var targetParent = fillTransform != null ? fillTransform : root.transform;
 
-        var textObj = new GameObject("Text", typeof(RectTransform), typeof(TextMeshProUGUI));
-        textObj.transform.SetParent(targetParent, false);
+        var bottomLine = new GameObject("BottomAccent", typeof(RectTransform), typeof(Image));
+        bottomLine.transform.SetParent(targetParent, false);
+        var blRT = bottomLine.GetComponent<RectTransform>();
+        blRT.anchorMin = new Vector2(0f, 0f);
+        blRT.anchorMax = new Vector2(1f, 0f);
+        blRT.pivot = new Vector2(0.5f, 0f);
+        blRT.sizeDelta = new Vector2(0f, 1.5f);
+        blRT.anchoredPosition = Vector2.zero;
+        var blImg = bottomLine.GetComponent<Image>();
+        blImg.color = CyberPalette.ColorInputAccent;
+        blImg.raycastTarget = false;
 
+        var textArea = new GameObject("TextArea", typeof(RectTransform), typeof(RectMask2D));
+        textArea.transform.SetParent(targetParent, false);
+        var taRT = textArea.GetComponent<RectTransform>();
+        taRT.anchorMin = Vector2.zero;
+        taRT.anchorMax = Vector2.one;
+        taRT.offsetMin = multiline ? new Vector2(6f, 6f) : new Vector2(6f, 2f);
+        taRT.offsetMax = multiline ? new Vector2(-6f, -6f) : new Vector2(-6f, -2f);
+
+        var textObj = new GameObject("Text", typeof(RectTransform));
+        textObj.SetActive(false);
+        textObj.transform.SetParent(textArea.transform, false);
         var textRT = textObj.GetComponent<RectTransform>();
         textRT.anchorMin = Vector2.zero;
         textRT.anchorMax = Vector2.one;
-        textRT.offsetMin = new Vector2(6f, 1f);
-        textRT.offsetMax = new Vector2(-6f, -1f);
+        textRT.offsetMin = Vector2.zero;
+        textRT.offsetMax = Vector2.zero;
 
-        var textTmp = textObj.GetComponent<TextMeshProUGUI>();
-        var font = ResolveFont();
-        if (font != null)
+        var standardFont = ResolveFont();
+
+        var textTmp = textObj.AddComponent<TextMeshProUGUI>();
+        if (standardFont != null)
         {
-            textTmp.font = font;
+            textTmp.font = standardFont;
+            if (standardFont.material != null)
+            {
+                textTmp.fontSharedMaterial = standardFont.material;
+            }
         }
 
-        textTmp.fontSize = GetScaledFontSize(10.5f);
+        textTmp.fontSize = GetScaledFontSize(10f);
         textTmp.color = CyberPalette.ColorTextMain;
-        textTmp.enableWordWrapping = false;
+        textTmp.alignment = multiline ? TextAlignmentOptions.TopLeft : TextAlignmentOptions.MidlineLeft;
+        textTmp.enableWordWrapping = multiline;
+        textTmp.richText = false;
+        textTmp.overflowMode = TextOverflowModes.Overflow;
+        textTmp.raycastTarget = false;
+        textObj.SetActive(true);
+
+        var placeholderObj = new GameObject("Placeholder", typeof(RectTransform));
+        placeholderObj.SetActive(false);
+        placeholderObj.transform.SetParent(textArea.transform, false);
+        var phRT = placeholderObj.GetComponent<RectTransform>();
+        phRT.anchorMin = Vector2.zero;
+        phRT.anchorMax = Vector2.one;
+        phRT.offsetMin = Vector2.zero;
+        phRT.offsetMax = Vector2.zero;
+
+        var placeholderTmp = placeholderObj.AddComponent<TextMeshProUGUI>();
+        if (standardFont != null)
+        {
+            placeholderTmp.font = standardFont;
+            if (standardFont.material != null)
+            {
+                placeholderTmp.fontSharedMaterial = standardFont.material;
+            }
+        }
+
+        placeholderTmp.fontSize = GetScaledFontSize(10f);
+        placeholderTmp.color = new Color(0.35f, 0.48f, 0.58f, 0.55f);
+        placeholderTmp.text = placeholderText ?? string.Empty;
+        placeholderTmp.alignment = multiline ? TextAlignmentOptions.TopLeft : TextAlignmentOptions.MidlineLeft;
+        placeholderTmp.enableWordWrapping = multiline;
+        placeholderTmp.richText = false;
+        placeholderTmp.raycastTarget = false;
+        placeholderObj.SetActive(true);
 
         var input = root.AddComponent<TMP_InputField>();
         input.textComponent = textTmp;
+        input.textViewport = taRT;
+        input.targetGraphic = fillTransform != null ? fillTransform.GetComponent<Image>() : root.GetComponent<Image>();
+        input.placeholder = placeholderTmp;
 
-        if (!string.IsNullOrEmpty(placeholderText))
+        input.lineType = multiline ? TMP_InputField.LineType.MultiLineNewline : TMP_InputField.LineType.SingleLine;
+        input.navigation = new Navigation { mode = Navigation.Mode.None };
+
+        input.customCaretColor = true;
+        input.caretColor = CyberPalette.ColorIceBlueBright;
+        input.caretWidth = 2;
+        input.caretBlinkRate = 0.85f;
+        input.selectionColor = new Color(0.12f, 0.50f, 0.75f, 0.45f);
+
+        var borderImg = root.GetComponent<Image>();
+        var fillImg = fillTransform != null ? fillTransform.GetComponent<Image>() : null;
+
+        var hover = root.AddComponent<CyberHoverHandler>();
+        hover.Init(borderImg, CyberPalette.ColorInputGroove, new Color(0.22f, 0.38f, 0.50f, 0.9f), fillImg, CyberPalette.ColorInputWell, CyberPalette.ColorInputWell);
+
+        input.onSelect.AddListener(_ =>
         {
-            var placeholderObj = new GameObject("Placeholder", typeof(RectTransform), typeof(TextMeshProUGUI));
-            placeholderObj.transform.SetParent(targetParent, false);
-
-            var placeholderRT = placeholderObj.GetComponent<RectTransform>();
-            placeholderRT.anchorMin = Vector2.zero;
-            placeholderRT.anchorMax = Vector2.one;
-            placeholderRT.offsetMin = new Vector2(6f, 1f);
-            placeholderRT.offsetMax = new Vector2(-6f, -1f);
-
-            var placeholderTmp = placeholderObj.GetComponent<TextMeshProUGUI>();
-            if (font != null)
-            {
-                placeholderTmp.font = font;
-            }
-
-            placeholderTmp.fontSize = GetScaledFontSize(10.5f);
-            placeholderTmp.color = CyberPalette.ColorTextMuted;
-            placeholderTmp.text = placeholderText;
-            placeholderTmp.enableWordWrapping = false;
-
-            input.placeholder = placeholderTmp;
-        }
+            if (borderImg != null) borderImg.color = CyberPalette.ColorIceBlueBright;
+            if (blImg != null) blImg.color = CyberPalette.ColorIceBlueBright;
+        });
+        input.onDeselect.AddListener(_ =>
+        {
+            if (borderImg != null) borderImg.color = CyberPalette.ColorInputGroove;
+            if (blImg != null) blImg.color = CyberPalette.ColorInputAccent;
+        });
 
         input.text = initialText;
         input.onEndEdit.AddListener(new UnityAction<string>(val => onCommit?.Invoke(val)));
 
         return (root, input);
+    }
+
+    public static RectTransform? AttachTextPadIcon(Transform leftArea, TextMeshProUGUI label)
+    {
+        if (leftArea == null || label == null)
+        {
+            return null;
+        }
+
+        var iconObj = new GameObject("TextPadIcon", typeof(RectTransform), typeof(Image));
+        iconObj.transform.SetParent(leftArea, false);
+
+        var iconRT = iconObj.GetComponent<RectTransform>();
+        iconRT.anchorMin = new Vector2(0f, 0.5f);
+        iconRT.anchorMax = new Vector2(0f, 0.5f);
+        iconRT.pivot = new Vector2(0f, 0.5f);
+        iconRT.sizeDelta = new Vector2(13f, 13f);
+
+        label.ForceMeshUpdate();
+        iconRT.anchoredPosition = new Vector2(label.preferredWidth + 6f, 0f);
+
+        var iconImg = iconObj.GetComponent<Image>();
+        iconImg.sprite = IconFactory.GetTextPadIcon();
+        iconImg.color = CyberPalette.ColorTextMuted;
+        iconImg.raycastTarget = false;
+
+        return iconRT;
     }
 }

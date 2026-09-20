@@ -23,15 +23,26 @@ public static class NumberDrawer
             {
                 input.text = entry.EditBuffer;
             }
-        });
+        }, 55f);
 
         var (inputRoot, inputField) = UiFactory.CreateInputField(valueArea, "Input", entry.EditBuffer, text =>
         {
             entry.UpdateBuffer(text);
             entry.CommitBuffer();
-        }, 55f, 22f);
+        }, 55f, 22f, "");
 
         input = inputField;
+        inputField.interactable = entry.CanEdit;
+
+        if (IsIntegerType(entry.SettingType))
+        {
+            inputField.contentType = TMP_InputField.ContentType.IntegerNumber;
+        }
+        else
+        {
+            inputField.contentType = TMP_InputField.ContentType.DecimalNumber;
+        }
+
         inputField.onValueChanged.AddListener(val =>
         {
             entry.UpdateBuffer(val);
@@ -40,5 +51,17 @@ public static class NumberDrawer
         inputRoot.transform.SetAsFirstSibling();
 
         return rowObj;
+    }
+
+    private static bool IsIntegerType(Type type)
+    {
+        return type == typeof(int) ||
+               type == typeof(long) ||
+               type == typeof(short) ||
+               type == typeof(byte) ||
+               type == typeof(sbyte) ||
+               type == typeof(uint) ||
+               type == typeof(ulong) ||
+               type == typeof(ushort);
     }
 }

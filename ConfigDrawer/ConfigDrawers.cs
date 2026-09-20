@@ -3,6 +3,7 @@ using BepInEx.Bootstrap;
 using BepInEx.ConfigDrawers.Components;
 using BepInEx.ConfigDrawers.Configuration;
 using BepInEx.ConfigDrawers.Patches;
+using HarmonyLib;
 using UnityEngine;
 
 namespace BepInEx.ConfigDrawers;
@@ -21,7 +22,11 @@ public class ConfigDrawers : BaseUnityPlugin
         Instance = this;
         ConfigDrawerConfig.Initialize(Config);
 
+        var harmony = new Harmony(ModGuid);
+        harmony.PatchAll(typeof(ConfigDrawers).Assembly);
+
         LegacyManagerSuppressor.CheckAndSuppress(Logger);
+        UI.UiFactory.ResolveFont();
         InitializeWindow();
         AttachCompatibilityShim();
     }

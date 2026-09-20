@@ -1,3 +1,6 @@
+using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
 using System;
 using System.ComponentModel;
 using System.Globalization;
@@ -9,6 +12,10 @@ namespace BepInEx.ConfigDrawers.Models;
 
 public class SettingEntry
 {
+    private object? _cmaTagObject;
+    private static float _lastAdminCheck;
+    private static bool _cachedAdmin = true;
+
     public ConfigEntryBase ConfigEntry { get; }
     public string Key => ConfigEntry.Definition.Key;
     public string Section => ConfigEntry.Definition.Section;
@@ -31,11 +38,40 @@ public class SettingEntry
     public Color DescriptionColor { get; private set; } = Color.white;
     public Action<ConfigEntryBase>? CustomDrawer { get; private set; }
     public AcceptableValueBase? AcceptableValues => ConfigEntry.Description.AcceptableValues;
+    public KeyValuePair<object, object>? RangeBounds { get; private set; }
+    public object[]? AcceptableValuesList { get; private set; }
+    public Func<bool>? DynamicBrowsability { get; private set; }
+    public bool IsCurrentlyBrowsable => Browsable && (DynamicBrowsability == null || DynamicBrowsability());
 
     public string EditBuffer { get; set; } = string.Empty;
     public bool IsDirty { get; private set; }
     public bool IsValid { get; private set; } = true;
     public string? ValidationMessage { get; private set; }
+
+    public bool CanEdit
+    {
+        get
+        {
+            if (CheckDynamicUnlocked())
+            {
+                return true;
+            }
+
+            if (IsAdminOnly)
+            {
+                return IsAdminOrSinglePlayer();
+            }
+
+            if (ReadOnly)
+            {
+                return false;
+            }
+
+            return true;
+        }
+    }
+
+    public bool CanReset => CanEdit && (!HideDefaultButton || IsAdminOnly) && DefaultValue != null;
 
     public SettingEntry(ConfigEntryBase configEntry)
     {
@@ -46,6 +82,7 @@ public class SettingEntry
         DefaultValue = configEntry.DefaultValue;
 
         ExtractAttributes();
+        ExtractAcceptableValues();
         ResetBuffer();
     }
 
@@ -90,6 +127,39 @@ public class SettingEntry
         }
     }
 
+
+    private void ExtractAcceptableValues()
+    {
+        var av = ConfigEntry.Description.AcceptableValues;
+        if (av == null)
+        {
+            return;
+        }
+
+        var type = av.GetType();
+        var minProp = type.GetProperty("MinValue");
+        var maxProp = type.GetProperty("MaxValue");
+        if (minProp != null && maxProp != null)
+        {
+            var min = minProp.GetValue(av, null);
+            var max = maxProp.GetValue(av, null);
+            if (min != null && max != null)
+            {
+                RangeBounds = new KeyValuePair<object, object>(min, max);
+                return;
+            }
+        }
+
+        var listProp = type.GetProperty("AcceptableValues");
+        if (listProp != null)
+        {
+            if (listProp.GetValue(av, null) is IEnumerable enumerable)
+            {
+                AcceptableValuesList = enumerable.Cast<object>().ToArray();
+            }
+        }
+    }
+
     private void InspectDynamicTag(object tag)
     {
         var tagType = tag.GetType();
@@ -97,6 +167,8 @@ public class SettingEntry
         {
             return;
         }
+
+        _cmaTagObject = tag;
 
         var fields = tagType.GetFields(BindingFlags.Instance | BindingFlags.Public);
         var properties = tagType.GetProperties(BindingFlags.Instance | BindingFlags.Public);
@@ -169,14 +241,108 @@ public class SettingEntry
                 case nameof(DefaultValue):
                     DefaultValue = value;
                     break;
-                case nameof(CustomDrawer) when value is Action<ConfigEntryBase> drawer:
-                    CustomDrawer = drawer;
+                case nameof(CustomDrawer) when value is Delegate del:
+                    CustomDrawer = cfg =>
+                    {
+                        try
+                        {
+                            del.DynamicInvoke(cfg);
+                        }
+                        catch (Exception ex)
+                        {
+                            Debug.LogError($"[ConfigDrawers] CustomDrawer error for {Key}: {ex}");
+                        }
+                    };
+                    break;
+                case "browsability" when value is Func<bool> fb:
+                    DynamicBrowsability = fb;
                     break;
             }
         }
         catch
         {
             // Defensive ignore invalid tag values
+        }
+    }
+
+    private bool CheckDynamicUnlocked()
+    {
+        if (_cmaTagObject == null)
+        {
+            return false;
+        }
+
+        try
+        {
+            var type = _cmaTagObject.GetType();
+            var prop = type.GetProperty("IsUnlocked", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+            if (prop != null && prop.GetValue(_cmaTagObject, null) is bool unlocked)
+            {
+                return unlocked;
+            }
+
+            var field = type.GetField("IsUnlocked", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+            if (field != null && field.GetValue(_cmaTagObject) is bool unlockedField)
+            {
+                return unlockedField;
+            }
+        }
+        catch
+        {
+            // Soft failure ignore
+        }
+
+        return false;
+    }
+
+    public static bool IsAdminOrSinglePlayer()
+    {
+        if (Time.unscaledTime - _lastAdminCheck < 1.0f)
+        {
+            return _cachedAdmin;
+        }
+
+        _lastAdminCheck = Time.unscaledTime;
+
+        try
+        {
+            var znetType = Type.GetType("ZNet, assembly_valheim");
+            if (znetType == null)
+            {
+                _cachedAdmin = true;
+                return true;
+            }
+
+            var instanceProp = znetType.GetProperty("instance", BindingFlags.Static | BindingFlags.Public)
+                            ?? znetType.GetProperty("m_instance", BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
+            var instance = instanceProp?.GetValue(null);
+            if (instance == null)
+            {
+                _cachedAdmin = true;
+                return true;
+            }
+
+            var adminOrHostMethod = znetType.GetMethod("LocalPlayerIsAdminOrHost", BindingFlags.Instance | BindingFlags.Public);
+            if (adminOrHostMethod != null)
+            {
+                _cachedAdmin = (bool)adminOrHostMethod.Invoke(instance, null);
+                return _cachedAdmin;
+            }
+
+            var isServerMethod = znetType.GetMethod("IsServer", BindingFlags.Instance | BindingFlags.Public);
+            if (isServerMethod != null)
+            {
+                _cachedAdmin = (bool)isServerMethod.Invoke(instance, null);
+                return _cachedAdmin;
+            }
+
+            _cachedAdmin = true;
+            return true;
+        }
+        catch
+        {
+            _cachedAdmin = true;
+            return true;
         }
     }
 
@@ -221,7 +387,7 @@ public class SettingEntry
 
     public bool CommitBuffer()
     {
-        if (!IsValid || !IsDirty || ReadOnly || (!IsUnlocked && IsAdminOnly))
+        if (!IsValid || !IsDirty || !CanEdit)
         {
             return false;
         }
@@ -247,7 +413,7 @@ public class SettingEntry
 
     public void SetValue(object newValue)
     {
-        if (ReadOnly || (!IsUnlocked && IsAdminOnly) || newValue == null)
+        if (!CanEdit || newValue == null)
         {
             return;
         }
@@ -265,7 +431,7 @@ public class SettingEntry
 
     public void ResetToDefault()
     {
-        if (DefaultValue == null || ReadOnly || (!IsUnlocked && IsAdminOnly))
+        if (!CanReset || DefaultValue == null)
         {
             return;
         }

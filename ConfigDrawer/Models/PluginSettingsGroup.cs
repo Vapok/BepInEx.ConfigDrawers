@@ -41,7 +41,7 @@ public class PluginSettingsGroup
 
     public IEnumerable<KeyValuePair<string, List<SettingEntry>>> GetFilteredCategories(string query, bool showAdvanced)
     {
-        var settings = AllSettings.Where(s => s.Browsable && (showAdvanced || !s.IsAdvanced));
+        var settings = AllSettings.Where(s => s.IsCurrentlyBrowsable && (showAdvanced || !s.IsAdvanced));
 
         if (!string.IsNullOrWhiteSpace(query))
         {

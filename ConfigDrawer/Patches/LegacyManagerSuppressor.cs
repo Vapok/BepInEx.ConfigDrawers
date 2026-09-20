@@ -63,6 +63,12 @@ public static class LegacyManagerSuppressor
             {
                 displayingProp.SetValue(component, false, null);
             }
+
+            var rightColProp = type.GetProperty("RightColumnWidth", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+            if (rightColProp != null && rightColProp.CanWrite)
+            {
+                rightColProp.SetValue(component, 350, null);
+            }
         }
         catch (Exception ex)
         {

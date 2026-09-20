@@ -23,7 +23,11 @@ public class ConfigurationManager : MonoBehaviour
 
     public bool OverrideHotkey { get; set; }
 
-    public int RightColumnWidth => (int)(ConfigDrawerWindow.Instance?.SettingsColumnWidth ?? 260f);
+    public int RightColumnWidth => 350;
+
+    public void SetRightColumnWidth(int value)
+    {
+    }
 
     private void Awake()
     {
