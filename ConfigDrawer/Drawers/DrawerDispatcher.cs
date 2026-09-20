@@ -89,65 +89,31 @@ public static class DrawerDispatcher
         var cardHover = row.AddComponent<CyberHoverHandler>();
         cardHover.Init(borderImg, CyberPalette.ColorBorderCard, CyberPalette.ColorIceBlueBright, fillImg, CyberPalette.ColorCardSurface, CyberPalette.ColorVoidBlack);
 
-        var leftArea = new GameObject("LeftArea", typeof(RectTransform), typeof(HorizontalLayoutGroup));
+        var leftArea = new GameObject("LeftArea", typeof(RectTransform));
         leftArea.transform.SetParent(target, false);
         var leftRT = leftArea.GetComponent<RectTransform>();
         leftRT.anchorMin = new Vector2(0f, 0f);
-        leftRT.anchorMax = new Vector2(0.60f, 1f);
+        leftRT.anchorMax = new Vector2(0.62f, 1f);
         leftRT.offsetMin = new Vector2(8f, 0f);
         leftRT.offsetMax = Vector2.zero;
 
-        var leftHlg = leftArea.GetComponent<HorizontalLayoutGroup>();
-        leftHlg.spacing = 6f;
-        leftHlg.childAlignment = TextAnchor.MiddleLeft;
-        leftHlg.childControlWidth = true;
-        leftHlg.childControlHeight = true;
-        leftHlg.childForceExpandWidth = false;
-        leftHlg.childForceExpandHeight = false;
-
-        if (entry.IsAdminOnly || !entry.IsUnlocked)
-        {
-            var badgePanel = UiFactory.CreatePanel(leftArea.transform, "SyncBadge", CyberPalette.ColorWarningAmber, CyberPalette.ColorVoidBlack, 1f);
-            var badgeRT = badgePanel.GetComponent<RectTransform>();
-            badgeRT.sizeDelta = new Vector2(34f, 16f);
-
-            var badgeLayout = badgePanel.AddComponent<LayoutElement>();
-            badgeLayout.minWidth = 34f;
-            badgeLayout.preferredWidth = 34f;
-            badgeLayout.flexibleWidth = 0f;
-            badgeLayout.minHeight = 16f;
-            badgeLayout.preferredHeight = 16f;
-            badgeLayout.flexibleHeight = 0f;
-
-            var badgeFill = badgePanel.transform.Find("Fill");
-            var badgeTarget = badgeFill != null ? badgeFill : badgePanel.transform;
-
-            var badgeLabel = UiFactory.CreateLabel(badgeTarget, "Text", "SYNC", CyberPalette.ColorWarningAmber, 8.5f, TextAlignmentOptions.Center);
-            var badgeLabelRT = badgeLabel.GetComponent<RectTransform>();
-            badgeLabelRT.anchorMin = Vector2.zero;
-            badgeLabelRT.anchorMax = Vector2.one;
-            badgeLabelRT.offsetMin = Vector2.zero;
-            badgeLabelRT.offsetMax = Vector2.zero;
-        }
-
         var label = UiFactory.CreateLabel(leftArea.transform, "Label", entry.DispName, entry.EntryColor, 10.5f, TextAlignmentOptions.MidlineLeft);
-        var labelLayout = label.gameObject.AddComponent<LayoutElement>();
-        labelLayout.minWidth = 80f;
-        labelLayout.flexibleWidth = 1f;
-        labelLayout.minHeight = 18f;
-        labelLayout.preferredHeight = 18f;
-        labelLayout.flexibleHeight = 0f;
+        var labelRT = label.GetComponent<RectTransform>();
+        labelRT.anchorMin = Vector2.zero;
+        labelRT.anchorMax = Vector2.one;
+        labelRT.offsetMin = Vector2.zero;
+        labelRT.offsetMax = Vector2.zero;
 
         var rightArea = new GameObject("RightArea", typeof(RectTransform), typeof(HorizontalLayoutGroup));
         rightArea.transform.SetParent(target, false);
         var rightRT = rightArea.GetComponent<RectTransform>();
-        rightRT.anchorMin = new Vector2(0.60f, 0f);
+        rightRT.anchorMin = new Vector2(0.62f, 0f);
         rightRT.anchorMax = new Vector2(1f, 1f);
         rightRT.offsetMin = Vector2.zero;
         rightRT.offsetMax = new Vector2(-8f, 0f);
 
         var rightHlg = rightArea.GetComponent<HorizontalLayoutGroup>();
-        rightHlg.spacing = 4f;
+        rightHlg.spacing = 5f;
         rightHlg.childAlignment = TextAnchor.MiddleRight;
         rightHlg.childControlWidth = false;
         rightHlg.childControlHeight = false;
@@ -161,6 +127,26 @@ public static class DrawerDispatcher
                 entry.ResetToDefault();
                 onReset?.Invoke();
             }, CyberPalette.ColorBorderSubtle, CyberPalette.ColorWarningAmber, 38f, 22f);
+        }
+
+        if (entry.IsAdminOnly || !entry.IsUnlocked)
+        {
+            var iconObj = new GameObject("StatusIcon", typeof(RectTransform), typeof(Image));
+            iconObj.transform.SetParent(rightArea.transform, false);
+            var iconRT = iconObj.GetComponent<RectTransform>();
+            iconRT.sizeDelta = new Vector2(14f, 14f);
+
+            var iconImg = iconObj.GetComponent<Image>();
+            iconImg.sprite = entry.IsUnlocked ? IconFactory.GetSyncIcon() : IconFactory.GetLockIcon();
+            iconImg.color = CyberPalette.ColorWarningAmber;
+
+            var iconLayout = iconObj.AddComponent<LayoutElement>();
+            iconLayout.minWidth = 14f;
+            iconLayout.preferredWidth = 14f;
+            iconLayout.flexibleWidth = 0f;
+            iconLayout.minHeight = 14f;
+            iconLayout.preferredHeight = 14f;
+            iconLayout.flexibleHeight = 0f;
         }
 
         return row;

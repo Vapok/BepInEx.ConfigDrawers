@@ -4,6 +4,7 @@ using System.Linq;
 using BepInEx.ConfigDrawers.Components;
 using BepInEx.ConfigDrawers.Models;
 using BepInEx.ConfigDrawers.UI;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -34,52 +35,124 @@ public static class DataGridDrawer
             throw new ArgumentNullException(entry == null ? nameof(entry) : nameof(parent));
         }
 
-        var container = UiFactory.CreatePanel(parent, $"Grid_{entry.Key}", CyberPalette.ColorBorderCard, CyberPalette.ColorVoidBlack, 1f);
-        var layout = container.AddComponent<VerticalLayoutGroup>();
-        layout.spacing = 3f;
-        layout.padding = new RectOffset(6, 6, 6, 6);
-        layout.childControlWidth = true;
-        layout.childControlHeight = true;
-        layout.childForceExpandWidth = true;
-        layout.childForceExpandHeight = false;
+        var rootObj = new GameObject($"GridGroup_{entry.Key}", typeof(RectTransform), typeof(VerticalLayoutGroup));
+        rootObj.transform.SetParent(parent, false);
 
-        var csf = container.AddComponent<ContentSizeFitter>();
+        var vlg = rootObj.GetComponent<VerticalLayoutGroup>();
+        vlg.spacing = 2f;
+        vlg.childControlWidth = true;
+        vlg.childControlHeight = true;
+        vlg.childForceExpandWidth = true;
+        vlg.childForceExpandHeight = false;
+
+        var csf = rootObj.AddComponent<ContentSizeFitter>();
         csf.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
 
         var raw = entry.ConfigEntry?.BoxedValue as string ?? string.Empty;
-        var rows = raw.Split(new[] { ',', '\n' }, StringSplitOptions.RemoveEmptyEntries)
-                      .Select(r => r.Trim())
-                      .Where(r => !string.IsNullOrEmpty(r))
-                      .ToList();
+        var rows = ParseRows(raw);
 
-        var headerRow = UiFactory.CreateLabel(container.transform, "Header", $"// {entry.DispName} [ DATA GRID: {rows.Count} ITEMS ] //", CyberPalette.ColorIceBlueBright, 10.5f);
-        var headerLayout = headerRow.gameObject.AddComponent<LayoutElement>();
-        headerLayout.minHeight = 20f;
-        headerLayout.preferredHeight = 20f;
-        headerLayout.flexibleHeight = 0f;
+        GameObject? tableContainer = null;
+        TextMeshProUGUI? toggleBtnText = null;
+        var isExpanded = false;
+
+        var rowObj = DrawerDispatcher.CreateRowContainer(rootObj.transform, entry, out var valueArea, () =>
+        {
+            raw = entry.ConfigEntry?.BoxedValue as string ?? string.Empty;
+            rows = ParseRows(raw);
+            if (toggleBtnText != null)
+            {
+                toggleBtnText.text = isExpanded ? $"{rows.Count} Items  v" : $"{rows.Count} Items  >";
+            }
+            if (tableContainer != null)
+            {
+                RebuildTableRows(tableContainer.transform, rows, entry, toggleBtnText, () => isExpanded);
+            }
+        });
+
+        var toggleBtn = UiFactory.CreateCyberButton(valueArea, "ToggleGridBtn", $"{rows.Count} Items  >", () =>
+        {
+            isExpanded = !isExpanded;
+            if (tableContainer != null)
+            {
+                tableContainer.SetActive(isExpanded);
+            }
+            if (toggleBtnText != null)
+            {
+                toggleBtnText.text = isExpanded ? $"{rows.Count} Items  v" : $"{rows.Count} Items  >";
+            }
+        }, CyberPalette.ColorCyberTeal, CyberPalette.ColorIceBlueBright, 85f, 22f);
+
+        toggleBtn.transform.SetAsFirstSibling();
+        toggleBtnText = toggleBtn.GetComponentInChildren<TextMeshProUGUI>();
+
+        tableContainer = UiFactory.CreatePanel(rootObj.transform, "TableContainer", CyberPalette.ColorBorderSubtle, CyberPalette.ColorVoidBlack, 1f);
+        var tableLayout = tableContainer.AddComponent<VerticalLayoutGroup>();
+        tableLayout.spacing = 3f;
+        tableLayout.padding = new RectOffset(12, 8, 6, 6);
+        tableLayout.childControlWidth = true;
+        tableLayout.childControlHeight = true;
+        tableLayout.childForceExpandWidth = true;
+        tableLayout.childForceExpandHeight = false;
+
+        var tableCsf = tableContainer.AddComponent<ContentSizeFitter>();
+        tableCsf.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+        RebuildTableRows(tableContainer.transform, rows, entry, toggleBtnText, () => isExpanded);
+        tableContainer.SetActive(false);
+
+        return rootObj;
+    }
+
+    private static List<string> ParseRows(string raw)
+    {
+        return raw.Split(new[] { ',', '\n' }, StringSplitOptions.RemoveEmptyEntries)
+                  .Select(r => r.Trim())
+                  .Where(r => !string.IsNullOrEmpty(r))
+                  .ToList();
+    }
+
+    private static void RebuildTableRows(Transform container, List<string> rows, SettingEntry entry, TextMeshProUGUI? toggleBtnText, Func<bool> getExpanded)
+    {
+        var fill = container.Find("Fill");
+        var target = fill != null ? fill : container;
+
+        foreach (Transform child in target)
+        {
+            UnityEngine.Object.Destroy(child.gameObject);
+        }
 
         for (int i = 0; i < rows.Count; i++)
         {
             var rowIndex = i;
-            RenderDataRow(container.transform, rows, rowIndex, entry, () =>
+            RenderDataRow(target, rows, rowIndex, entry, () =>
             {
-                // Refresh parent
                 entry.SetValue(string.Join(",", rows));
+                if (toggleBtnText != null)
+                {
+                    toggleBtnText.text = getExpanded() ? $"{rows.Count} Items  v" : $"{rows.Count} Items  >";
+                }
+            }, () =>
+            {
+                RebuildTableRows(container, rows, entry, toggleBtnText, getExpanded);
             });
         }
 
-        var addBtn = UiFactory.CreateCyberButton(container.transform, "AddRowBtn", "[ + ADD ENTRY ]", () =>
+        var addBtn = UiFactory.CreateCyberButton(target, "AddRowBtn", "+ Add Entry", () =>
         {
             rows.Add("Item:1");
             entry.SetValue(string.Join(",", rows));
+            RebuildTableRows(container, rows, entry, toggleBtnText, getExpanded);
+            if (toggleBtnText != null)
+            {
+                toggleBtnText.text = getExpanded() ? $"{rows.Count} Items  v" : $"{rows.Count} Items  >";
+            }
         }, CyberPalette.ColorGlacialMint, CyberPalette.ColorGlacialMint, -1f, 22f);
+
         var addLayout = addBtn.GetComponent<LayoutElement>();
         addLayout.flexibleWidth = 1f;
-
-        return container;
     }
 
-    private static void RenderDataRow(Transform parent, List<string> rows, int index, SettingEntry entry, Action onModified)
+    private static void RenderDataRow(Transform parent, List<string> rows, int index, SettingEntry entry, Action onModified, Action onRebuild)
     {
         var rowStr = rows[index];
         var parts = rowStr.Split(':');
@@ -108,7 +181,7 @@ public static class DataGridDrawer
             parts[0] = newName;
             rows[index] = string.Join(":", parts);
             onModified?.Invoke();
-        }, 150f, 22f);
+        }, 160f, 22f);
 
         UiFactory.CreateInputField(rowObj.transform, "ColAmount", amountPart, newAmount =>
         {
@@ -120,10 +193,12 @@ public static class DataGridDrawer
             onModified?.Invoke();
         }, 50f, 22f);
 
-        UiFactory.CreateCyberButton(rowObj.transform, "DeleteBtn", "[ X ]", () =>
+        UiFactory.CreateCyberButton(rowObj.transform, "DeleteBtn", "X", () =>
         {
             rows.RemoveAt(index);
+            entry.SetValue(string.Join(",", rows));
             onModified?.Invoke();
+            onRebuild?.Invoke();
         }, CyberPalette.ColorErrorRed, CyberPalette.ColorErrorRed, 24f, 20f);
     }
 }
