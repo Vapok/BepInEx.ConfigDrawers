@@ -19,24 +19,27 @@
 
 ## Overview
 
-**BepInEx.ConfigDrawers** is a modern, lightweight, high-performance in-game Configuration Manager built from the ground up to replace outdated configuration managers. 
+**BepInEx.ConfigDrawers** is a modern, lightweight, high-performance in-game Configuration Manager built from the ground up to replace dated configuration managers.
 
-Designed with a sleek **Cyber-Console UI** inspired by [Vapok.io](https://vapok.io), `BepInEx.ConfigDrawers` slides out effortlessly as a side drawer when you press your hotkey, keeping your game screen visible and making mod tweaking enjoyable again.
+Featuring a sleek **Cyber-Console UI** with neon ice-blue accents, deep obsidian containers, and crisp monospace typography, `BepInEx.ConfigDrawers` slides out effortlessly from the screen edge on demand. It keeps your game world completely visible while giving you precision control over all your installed mods.
 
 ---
 
 ## Key Features
 
-- **Smooth Sliding Drawer**: Slides out from the screen edge on demand. Occupies less than 25% of your screen width, leaving your game world completely visible.
-- **Magnetic Docking & Free Float**: Default to the left monitor rail, snap to the right rail, or detach and drag freely across your screen to keep whatever you are tuning in clear view.
-- **No More Clobbered Text Fields**: Input fields use a modern buffered editing pattern. You can backspace, type decimals, and adjust values without your inputs resetting or jumping.
-- **Interactive In-Game Rebinding**: Want to change the hotkey from `F1` to `F10` or `Pause`? Click `[ BIND ]`, press your key, and you're done.
-- **First-Class Data Grids & Tables**: Dedicated visual multi-column tables for crafting recipes, upgrading costs, and creature drop tables.
-- **Dual-Mode JSON Editor**: Inspect custom JSON configurations using clean visual property cards or switch to a monospace code editor with live syntax checking.
-- **Contextual Hover Cards**: Hover over any setting to view its full description, default value, acceptable limits, and ServerSync lock status.
-- **Live Translucency Mode**: Toggle background opacity (`100%`, `80%`, `60%`) to look directly through the menu at your game environment.
-- **Automatic Legacy Takeover**: Gracefully disables hotkeys on older `ConfigurationManager.dll` versions to eliminate dual-window conflicts.
-- **Zero Bloat & Telemetry**: Completely standalone, ultra-lightweight, zero telemetry, and zero background tracking.
+- **Smooth Sliding Drawer**: Slides cleanly from the monitor edge. Occupies less than 25% of your screen width, leaving your gameplay and menus visible.
+- **Magnetic Docking & Free Float**: Snap to the left rail, snap to the right rail, or detach and drag freely across the screen with interactive window resize handles.
+- **Auto-Expanding Multiline Editor**: Long strings, lists, formatting tokens, and JSON payloads expand dynamically as you type without clipping or awkward tiny text boxes.
+- **Crisp Monospace Typography**: Built with embedded **Hack** font rendering with Signed Distance Fields (SDF) for ultra-sharp legibility at any resolution.
+- **Cyber Tooltips**: Interactive tooltips across all header buttons, dock modes, scale presets, and setting status indicators.
+- **Precision Color Picker**: Full HSV spectrum picker with real-time swatch preview, manual Hex/RGB inputs, and preset palette swatches.
+- **Smooth Numeric Sliders**: Smooth drag sliders with direct numeric input boxes for surgical precision.
+- **First-Class Data Grids & Tables**: Dedicated visual multi-column tables for complex structures like crafting recipes, upgrade costs, and drop tables.
+- **Live UI Scaling**: Switch dynamically between **Small**, **Normal**, and **Large** font and layout scales (`[ Size: Norm ]`) to comfortably fit 1080p, 1440p, or 4K monitors.
+- **Buffered Input Safety**: No more lost keystrokes or clobbered fields. Full backspace and cursor navigation with clear commit (`Enter` / defocus) and cancel (`Escape`).
+- **Interactive Hotkey Rebinding**: Click `[ F1 ]` (or your configured bind) in the header, press any key on your keyboard, and your new toggle key is instantly active.
+- **Automatic Legacy Suppression**: Gracefully suppresses older IMGUI `ConfigurationManager.dll` hotkeys to eliminate conflicting dual windows while continuing to render their custom drawers inside the modern drawer.
+- **Zero Bloat**: Single-file assembly with embedded resources, zero telemetry, and zero background performance overhead.
 
 ---
 
@@ -44,40 +47,60 @@ Designed with a sleek **Cyber-Console UI** inspired by [Vapok.io](https://vapok.
 
 | Action | Default Input | Description |
 | :--- | :--- | :--- |
-| **Toggle Menu** | `F1` | Opens or closes the BepInEx.ConfigDrawers menu. |
-| **Close Menu** | `Escape` | Closes the drawer (or reverts an active text box edit). |
-| **Commit Edit** | `Enter` | Saves and applies the current input field value. |
-| **Dock Left / Right** | `[ L ]` / `[ R ]` | Snaps the drawer to the left or right monitor rail. |
-| **Detach / Float** | `[ ⧉ ]` | Detaches the drawer into a movable floating window. |
-| **Rebind Hotkey** | Header Button | Click `[ BIND: F1 ]` and press any key to set a new toggle bind. |
+| **Toggle Drawer** | `F1` | Opens or closes the ConfigDrawers menu. |
+| **Close Drawer** | `Escape` | Closes the drawer (or cancels an active text field edit). |
+| **Commit Edit** | `Enter` / Defocus | Saves and applies the edited value back to the config file. |
+| **Dock Left / Right** | `[ Left ]` / `[ Right ]` | Snaps the drawer to the left or right monitor rail. |
+| **Detach / Float** | `[ Float ]` | Detaches the drawer into a free-floating, draggable window. |
+| **Resize Drawer** | Drag Edge Handle | Click and drag the inner border handle to resize the drawer width. |
+| **Cycle UI Scale** | `[ Size: Norm ]` | Toggles between Small (85%), Normal (95%), and Large (108%) scaling. |
+| **Rebind Hotkey** | `[ <Key> ]` | Click the hotkey button in the header and press any key to rebind. |
 
 ---
 
-## Compatibility
+## Mod Compatibility & Ecosystem
 
 `BepInEx.ConfigDrawers` provides 100% ecosystem compatibility:
-- **ServerSync Ready**: Automatically reflects locked server settings for non-admin players with clear visual indicators.
-- **Legacy Drawer Bridge**: Seamlessly renders custom drawers provided by third-party BepInEx mods.
-- **Universal Engine**: Built on pure Unity and BepInEx 5—works out of the box with Valheim and other Unity BepInEx titles.
+- **ServerSync Ready**: Automatically reflects locked server settings with dedicated sync status icons and admin-only safeguards.
+- **Legacy Drawer Bridge**: Seamlessly bridges legacy IMGUI custom drawers into responsive uGUI containers.
+- **Smart TextArea Routing**: Detects legacy `GUILayout.TextArea` single-control drawers and routes them to native auto-expanding uGUI text boxes.
+- **ConfigurationManagerAttributes**: Fully supports categories, order indexes, read-only flags, value ranges, and custom drawer delegates.
 
 ---
 
 ## Installation
 
 ### Via Thunderstore / r2modman (Recommended)
-1. Install via your mod manager of choice.
+1. Install via your mod manager of choice (search for `BepInEx_ConfigDrawers` by **Vapok**).
 2. Launch the game and press `F1`.
 
 ### Manual Installation
-1. Ensure **BepInEx 5.4** is installed.
-2. Extract `BepInEx.ConfigDrawers.dll` into your `BepInEx/plugins/` directory.
+1. Ensure **BepInEx 5.4.x** is installed.
+2. Download the latest release from [Releases](https://github.com/Vapok/BepInEx.ConfigDrawers/releases).
+3. Place `BepInEx.ConfigDrawers.dll` into your `BepInEx/plugins/` directory.
 
 ---
 
-## Author & Support
+## Building from Source
+
+Requirements:
+- .NET SDK (supports .NET Framework 4.8 / MSBuild)
+- BepInEx 5.4.x assemblies
+- Unity 6 / TextMeshPro assemblies (included in game references)
+
+```bash
+git clone https://github.com/Vapok/BepInEx.ConfigDrawers.git
+cd BepInEx.ConfigDrawers
+dotnet build ConfigDrawers.sln -c Release
+```
+
+---
+
+## Author & Community
 
 Created with ❤️ by **Vapok**.
 
 - **Website**: [vapok.io](https://vapok.io)
 - **Discord**: [Join the Vapok Gaming Community](https://discord.gg/vapok)
 - **GitHub**: [Vapok/BepInEx.ConfigDrawers](https://github.com/Vapok/BepInEx.ConfigDrawers)
+- **Thunderstore**: [Vapok Mods](https://thunderstore.io/c/valheim/p/Vapok/)
