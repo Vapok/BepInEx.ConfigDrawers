@@ -1,0 +1,72 @@
+using System;
+using System.Reflection;
+using BepInEx.Bootstrap;
+using BepInEx.Logging;
+using ConfigDrawer.Configuration;
+using UnityEngine;
+
+namespace ConfigDrawer.Patches;
+
+public static class LegacyManagerSuppressor
+{
+    private static bool _suppressed;
+
+    public static void CheckAndSuppress(ManualLogSource logger)
+    {
+        if (_suppressed || !ConfigDrawerConfig.AutoSuppressLegacy.Value)
+        {
+            return;
+        }
+
+        try
+        {
+            if (Chainloader.ManagerObject == null)
+            {
+                return;
+            }
+
+            var components = Chainloader.ManagerObject.GetComponents<MonoBehaviour>();
+            foreach (var comp in components)
+            {
+                if (comp == null)
+                {
+                    continue;
+                }
+
+                var type = comp.GetType();
+                if (type.FullName == "ConfigurationManager.ConfigurationManager")
+                {
+                    SuppressComponent(comp, type, logger);
+                    _suppressed = true;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning($"Legacy suppressor check encountered: {ex.Message}");
+        }
+    }
+
+    private static void SuppressComponent(MonoBehaviour component, Type type, ManualLogSource logger)
+    {
+        try
+        {
+            var overrideProp = type.GetProperty("OverrideHotkey", BindingFlags.Instance | BindingFlags.Public);
+            if (overrideProp != null && overrideProp.CanWrite)
+            {
+                overrideProp.SetValue(component, true, null);
+                logger.LogInfo("Successfully suppressed legacy ConfigurationManager hotkey listener.");
+            }
+
+            var displayingProp = type.GetProperty("DisplayingWindow", BindingFlags.Instance | BindingFlags.Public);
+            if (displayingProp != null && displayingProp.CanWrite)
+            {
+                displayingProp.SetValue(component, false, null);
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning($"Failed to suppress legacy component: {ex.Message}");
+        }
+    }
+}
