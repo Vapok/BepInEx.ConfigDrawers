@@ -93,9 +93,9 @@ public static class DrawerDispatcher
         leftArea.transform.SetParent(target, false);
         var leftRT = leftArea.GetComponent<RectTransform>();
         leftRT.anchorMin = new Vector2(0f, 0f);
-        leftRT.anchorMax = new Vector2(0.62f, 1f);
+        leftRT.anchorMax = new Vector2(1f, 1f);
         leftRT.offsetMin = new Vector2(8f, 0f);
-        leftRT.offsetMax = Vector2.zero;
+        leftRT.offsetMax = new Vector2(-172f, 0f);
 
         var label = UiFactory.CreateLabel(leftArea.transform, "Label", entry.DispName, entry.EntryColor, 10.5f, TextAlignmentOptions.MidlineLeft);
         var labelRT = label.GetComponent<RectTransform>();
@@ -107,13 +107,14 @@ public static class DrawerDispatcher
         var rightArea = new GameObject("RightArea", typeof(RectTransform), typeof(HorizontalLayoutGroup));
         rightArea.transform.SetParent(target, false);
         var rightRT = rightArea.GetComponent<RectTransform>();
-        rightRT.anchorMin = new Vector2(0.62f, 0f);
+        rightRT.anchorMin = new Vector2(1f, 0f);
         rightRT.anchorMax = new Vector2(1f, 1f);
-        rightRT.offsetMin = Vector2.zero;
-        rightRT.offsetMax = new Vector2(-8f, 0f);
+        rightRT.pivot = new Vector2(1f, 0.5f);
+        rightRT.anchoredPosition = new Vector2(-6f, 0f);
+        rightRT.sizeDelta = new Vector2(165f, 0f);
 
         var rightHlg = rightArea.GetComponent<HorizontalLayoutGroup>();
-        rightHlg.spacing = 5f;
+        rightHlg.spacing = 4f;
         rightHlg.childAlignment = TextAnchor.MiddleRight;
         rightHlg.childControlWidth = false;
         rightHlg.childControlHeight = false;
@@ -126,7 +127,7 @@ public static class DrawerDispatcher
             {
                 entry.ResetToDefault();
                 onReset?.Invoke();
-            }, CyberPalette.ColorBorderSubtle, CyberPalette.ColorWarningAmber, 38f, 22f);
+            }, CyberPalette.ColorBorderSubtle, CyberPalette.ColorWarningAmber, 40f, 22f);
         }
 
         if (entry.IsAdminOnly || !entry.IsUnlocked)

@@ -36,7 +36,7 @@ public static class EnumDrawer
         btnObj = UiFactory.CreateCyberButton(valueArea, "EnumBtn", labelText, () =>
         {
             CycleNext(entry, btnObj);
-        }, CyberPalette.ColorCyberTeal, CyberPalette.ColorIceBlueBright, 100f, 22f);
+        }, CyberPalette.ColorCyberTeal, CyberPalette.ColorIceBlueBright, 85f, 22f);
 
         btnObj.transform.SetAsFirstSibling();
 

@@ -35,19 +35,6 @@ public static class DataGridDrawer
             throw new ArgumentNullException(entry == null ? nameof(entry) : nameof(parent));
         }
 
-        var rootObj = new GameObject($"GridGroup_{entry.Key}", typeof(RectTransform), typeof(VerticalLayoutGroup));
-        rootObj.transform.SetParent(parent, false);
-
-        var vlg = rootObj.GetComponent<VerticalLayoutGroup>();
-        vlg.spacing = 2f;
-        vlg.childControlWidth = true;
-        vlg.childControlHeight = true;
-        vlg.childForceExpandWidth = true;
-        vlg.childForceExpandHeight = false;
-
-        var csf = rootObj.AddComponent<ContentSizeFitter>();
-        csf.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
-
         var raw = entry.ConfigEntry?.BoxedValue as string ?? string.Empty;
         var rows = ParseRows(raw);
 
@@ -55,7 +42,7 @@ public static class DataGridDrawer
         TextMeshProUGUI? toggleBtnText = null;
         var isExpanded = false;
 
-        var rowObj = DrawerDispatcher.CreateRowContainer(rootObj.transform, entry, out var valueArea, () =>
+        var rowObj = DrawerDispatcher.CreateRowContainer(parent, entry, out var valueArea, () =>
         {
             raw = entry.ConfigEntry?.BoxedValue as string ?? string.Empty;
             rows = ParseRows(raw);
@@ -65,7 +52,7 @@ public static class DataGridDrawer
             }
             if (tableContainer != null)
             {
-                RebuildTableRows(tableContainer.transform, rows, entry, toggleBtnText, () => isExpanded);
+                RebuildTableRows(tableContainer.transform, rows, entry, toggleBtnText, () => isExpanded, parent);
             }
         });
 
@@ -80,15 +67,21 @@ public static class DataGridDrawer
             {
                 toggleBtnText.text = isExpanded ? $"{rows.Count} Items  v" : $"{rows.Count} Items  >";
             }
-        }, CyberPalette.ColorCyberTeal, CyberPalette.ColorIceBlueBright, 85f, 22f);
+            if (parent is RectTransform pRT)
+            {
+                LayoutRebuilder.ForceRebuildLayoutImmediate(pRT);
+            }
+        }, CyberPalette.ColorCyberTeal, CyberPalette.ColorIceBlueBright, 70f, 22f);
 
         toggleBtn.transform.SetAsFirstSibling();
         toggleBtnText = toggleBtn.GetComponentInChildren<TextMeshProUGUI>();
 
-        tableContainer = UiFactory.CreatePanel(rootObj.transform, "TableContainer", CyberPalette.ColorBorderSubtle, CyberPalette.ColorVoidBlack, 1f);
+        tableContainer = UiFactory.CreatePanel(parent, $"GridTable_{entry.Key}", CyberPalette.ColorBorderSubtle, CyberPalette.ColorVoidBlack, 1f);
+        tableContainer.transform.SetSiblingIndex(rowObj.transform.GetSiblingIndex() + 1);
+
         var tableLayout = tableContainer.AddComponent<VerticalLayoutGroup>();
         tableLayout.spacing = 3f;
-        tableLayout.padding = new RectOffset(12, 8, 6, 6);
+        tableLayout.padding = new RectOffset(16, 8, 6, 6);
         tableLayout.childControlWidth = true;
         tableLayout.childControlHeight = true;
         tableLayout.childForceExpandWidth = true;
@@ -97,10 +90,10 @@ public static class DataGridDrawer
         var tableCsf = tableContainer.AddComponent<ContentSizeFitter>();
         tableCsf.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
 
-        RebuildTableRows(tableContainer.transform, rows, entry, toggleBtnText, () => isExpanded);
+        RebuildTableRows(tableContainer.transform, rows, entry, toggleBtnText, () => isExpanded, parent);
         tableContainer.SetActive(false);
 
-        return rootObj;
+        return rowObj;
     }
 
     private static List<string> ParseRows(string raw)
@@ -111,7 +104,7 @@ public static class DataGridDrawer
                   .ToList();
     }
 
-    private static void RebuildTableRows(Transform container, List<string> rows, SettingEntry entry, TextMeshProUGUI? toggleBtnText, Func<bool> getExpanded)
+    private static void RebuildTableRows(Transform container, List<string> rows, SettingEntry entry, TextMeshProUGUI? toggleBtnText, Func<bool> getExpanded, Transform parentList)
     {
         var fill = container.Find("Fill");
         var target = fill != null ? fill : container;
@@ -133,7 +126,7 @@ public static class DataGridDrawer
                 }
             }, () =>
             {
-                RebuildTableRows(container, rows, entry, toggleBtnText, getExpanded);
+                RebuildTableRows(container, rows, entry, toggleBtnText, getExpanded, parentList);
             });
         }
 
@@ -141,15 +134,24 @@ public static class DataGridDrawer
         {
             rows.Add("Item:1");
             entry.SetValue(string.Join(",", rows));
-            RebuildTableRows(container, rows, entry, toggleBtnText, getExpanded);
+            RebuildTableRows(container, rows, entry, toggleBtnText, getExpanded, parentList);
             if (toggleBtnText != null)
             {
                 toggleBtnText.text = getExpanded() ? $"{rows.Count} Items  v" : $"{rows.Count} Items  >";
+            }
+            if (parentList is RectTransform pRT)
+            {
+                LayoutRebuilder.ForceRebuildLayoutImmediate(pRT);
             }
         }, CyberPalette.ColorGlacialMint, CyberPalette.ColorGlacialMint, -1f, 22f);
 
         var addLayout = addBtn.GetComponent<LayoutElement>();
         addLayout.flexibleWidth = 1f;
+
+        if (parentList is RectTransform parentRT)
+        {
+            LayoutRebuilder.ForceRebuildLayoutImmediate(parentRT);
+        }
     }
 
     private static void RenderDataRow(Transform parent, List<string> rows, int index, SettingEntry entry, Action onModified, Action onRebuild)
@@ -181,7 +183,7 @@ public static class DataGridDrawer
             parts[0] = newName;
             rows[index] = string.Join(":", parts);
             onModified?.Invoke();
-        }, 160f, 22f);
+        }, 130f, 22f);
 
         UiFactory.CreateInputField(rowObj.transform, "ColAmount", amountPart, newAmount =>
         {
@@ -191,7 +193,7 @@ public static class DataGridDrawer
             }
             rows[index] = string.Join(":", parts);
             onModified?.Invoke();
-        }, 50f, 22f);
+        }, 45f, 22f);
 
         UiFactory.CreateCyberButton(rowObj.transform, "DeleteBtn", "X", () =>
         {
@@ -199,6 +201,6 @@ public static class DataGridDrawer
             entry.SetValue(string.Join(",", rows));
             onModified?.Invoke();
             onRebuild?.Invoke();
-        }, CyberPalette.ColorErrorRed, CyberPalette.ColorErrorRed, 24f, 20f);
+        }, CyberPalette.ColorErrorRed, CyberPalette.ColorErrorRed, 22f, 20f);
     }
 }

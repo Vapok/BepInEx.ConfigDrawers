@@ -39,7 +39,7 @@ public static class TextDrawer
             {
                 UpdateVisuals(inputRootObj, entry);
             }
-        }, 100f, 22f);
+        }, 85f, 22f);
 
         inputFieldObj.onValueChanged.AddListener(val =>
         {

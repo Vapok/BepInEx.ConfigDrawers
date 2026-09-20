@@ -29,7 +29,7 @@ public static class NumberDrawer
         {
             entry.UpdateBuffer(text);
             entry.CommitBuffer();
-        }, 75f, 22f);
+        }, 55f, 22f);
 
         input = inputField;
         inputField.onValueChanged.AddListener(val =>
