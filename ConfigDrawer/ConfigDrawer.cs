@@ -11,7 +11,7 @@ namespace ConfigDrawer;
 public class ConfigDrawer : BaseUnityPlugin
 {
     public const string ModGuid = "vapok.mods.configdrawer";
-    public const string ModName = "ConfigDrawer";
+    public const string ModName = "BepInEx ConfigDrawer";
     public const string ModVersion = "1.0.0";
 
     public static ConfigDrawer? Instance { get; private set; }

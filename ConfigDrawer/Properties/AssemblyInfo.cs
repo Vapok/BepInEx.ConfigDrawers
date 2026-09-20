@@ -1,11 +1,11 @@
 using System.Reflection;
 using System.Runtime.InteropServices;
 
-[assembly: AssemblyTitle("ConfigDrawer")]
+[assembly: AssemblyTitle("BepInEx ConfigDrawer")]
 [assembly: AssemblyDescription("Next-generation in-game Configuration Manager for Unity BepInEx")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Vapok")]
-[assembly: AssemblyProduct("ConfigDrawer")]
+[assembly: AssemblyProduct("BepInEx ConfigDrawer")]
 [assembly: AssemblyCopyright("Copyright © 2026")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]

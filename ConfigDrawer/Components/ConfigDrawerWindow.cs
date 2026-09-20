@@ -90,7 +90,7 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
         var fill = headerObj.transform.Find("Fill");
         var target = fill != null ? fill : headerObj.transform;
 
-        var title = UiFactory.CreateLabel(target, "Title", "// CONFIG DRAWER //", CyberPalette.ColorIceBlue, 13f);
+        var title = UiFactory.CreateLabel(target, "Title", "// BEPINEX CONFIG DRAWER //", CyberPalette.ColorIceBlue, 13f);
         var titleRT = title.GetComponent<RectTransform>();
         titleRT.anchorMin = new Vector2(0f, 0f);
         titleRT.anchorMax = new Vector2(0.45f, 1f);

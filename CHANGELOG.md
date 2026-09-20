@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to **ConfigDrawer** are documented here.
+All notable changes to **BepInEx ConfigDrawer** are documented here.
 
 ---
 
