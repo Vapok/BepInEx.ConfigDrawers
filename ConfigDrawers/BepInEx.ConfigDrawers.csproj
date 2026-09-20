@@ -63,10 +63,6 @@
       <HintPath>$(UNITY_MANAGED)/UnityEngine.UIElementsModule.dll</HintPath>
       <Private>false</Private>
     </Reference>
-    <Reference Include="UnityEngine.AssetBundleModule">
-      <HintPath>$(UNITY_MANAGED)/UnityEngine.AssetBundleModule.dll</HintPath>
-      <Private>false</Private>
-    </Reference>
     <Reference Include="UnityEngine.TextCoreFontEngineModule">
       <HintPath>$(UNITY_MANAGED)/UnityEngine.TextCoreFontEngineModule.dll</HintPath>
       <Private>false</Private>
@@ -94,7 +90,6 @@
   </Target>
 
   <ItemGroup>
-    <EmbeddedResource Include="Resources/configdrawfonts" />
     <EmbeddedResource Include="Resources/Hack-Regular.ttf" />
     <EmbeddedResource Include="Resources/Hack-Bold.ttf" />
   </ItemGroup>

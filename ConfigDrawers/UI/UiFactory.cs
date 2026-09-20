@@ -28,7 +28,6 @@ public static class UiFactory
         return Mathf.Round(baseSize * GetFontScaleFactor());
     }
 
-    private static AssetBundle? _fontAssetBundle;
     private static TMP_FontAsset? _customFontRegular;
     private static TMP_FontAsset? _customFontBold;
     private static bool _bundleLoadAttempted;
@@ -89,56 +88,8 @@ public static class UiFactory
 
         _bundleLoadAttempted = true;
 
-        try
-        {
-            var asm = typeof(UiFactory).Assembly;
-            using var stream = asm.GetManifestResourceStream("BepInEx.ConfigDrawers.Resources.configdrawfonts");
-            if (stream != null)
-            {
-                using var ms = new MemoryStream();
-                stream.CopyTo(ms);
-                _fontAssetBundle = AssetBundle.LoadFromMemory(ms.ToArray());
-                if (_fontAssetBundle != null)
-                {
-                    var allFonts = _fontAssetBundle.LoadAllAssets<TMP_FontAsset>();
-                    if (allFonts != null && allFonts.Length > 0)
-                    {
-                        foreach (var f in allFonts)
-                        {
-                            if (f == null || string.IsNullOrEmpty(f.name))
-                            {
-                                continue;
-                            }
-
-                            var ln = f.name.ToLowerInvariant();
-                            if (ln.Contains("regular"))
-                            {
-                                _customFontRegular = f;
-                            }
-                            else if (ln.Contains("bold") && !ln.Contains("italic"))
-                            {
-                                _customFontBold = f;
-                            }
-                        }
-
-                        if (_customFontRegular == null && allFonts.Length > 0)
-                        {
-                            _customFontRegular = allFonts[0];
-                        }
-                    }
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            ConfigDrawers.Log?.LogWarning($"[ConfigDrawers] Bundle load exception: {ex.Message}");
-        }
-
-        if (_customFontRegular == null)
-        {
-            _customFontRegular = CreateFontFromTtf("BepInEx.ConfigDrawers.Resources.Hack-Regular.ttf", "Hack-Regular.ttf");
-            _customFontBold = CreateFontFromTtf("BepInEx.ConfigDrawers.Resources.Hack-Bold.ttf", "Hack-Bold.ttf");
-        }
+        _customFontRegular = CreateFontFromTtf("BepInEx.ConfigDrawers.Resources.Hack-Regular.ttf", "Hack-Regular.ttf");
+        _customFontBold = CreateFontFromTtf("BepInEx.ConfigDrawers.Resources.Hack-Bold.ttf", "Hack-Bold.ttf");
 
         if (_customFontRegular != null && _customFontRegular.material != null)
         {
