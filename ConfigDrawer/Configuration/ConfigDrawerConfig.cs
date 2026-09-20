@@ -39,7 +39,7 @@ public static class ConfigDrawerConfig
         DrawerWidth = config.Bind(
             "Interface",
             "Drawer Width",
-            440f,
+            480f,
             new ConfigDescription("Width of the drawer in pixels.", new AcceptableValueRange<float>(360f, 720f))
         );
 

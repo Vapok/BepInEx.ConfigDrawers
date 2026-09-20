@@ -93,8 +93,8 @@ public static class DrawerDispatcher
         leftArea.transform.SetParent(target, false);
         var leftRT = leftArea.GetComponent<RectTransform>();
         leftRT.anchorMin = new Vector2(0f, 0f);
-        leftRT.anchorMax = new Vector2(0.66f, 1f);
-        leftRT.offsetMin = new Vector2(6f, 0f);
+        leftRT.anchorMax = new Vector2(0.60f, 1f);
+        leftRT.offsetMin = new Vector2(8f, 0f);
         leftRT.offsetMax = Vector2.zero;
 
         var leftHlg = leftArea.GetComponent<HorizontalLayoutGroup>();
@@ -130,7 +130,7 @@ public static class DrawerDispatcher
             badgeLabelRT.offsetMax = Vector2.zero;
         }
 
-        var label = UiFactory.CreateLabel(leftArea.transform, "Label", entry.DispName, entry.EntryColor, 10.5f);
+        var label = UiFactory.CreateLabel(leftArea.transform, "Label", entry.DispName, entry.EntryColor, 10.5f, TextAlignmentOptions.MidlineLeft);
         var labelLayout = label.gameObject.AddComponent<LayoutElement>();
         labelLayout.minWidth = 80f;
         labelLayout.flexibleWidth = 1f;
@@ -141,10 +141,10 @@ public static class DrawerDispatcher
         var rightArea = new GameObject("RightArea", typeof(RectTransform), typeof(HorizontalLayoutGroup));
         rightArea.transform.SetParent(target, false);
         var rightRT = rightArea.GetComponent<RectTransform>();
-        rightRT.anchorMin = new Vector2(0.66f, 0f);
+        rightRT.anchorMin = new Vector2(0.60f, 0f);
         rightRT.anchorMax = new Vector2(1f, 1f);
         rightRT.offsetMin = Vector2.zero;
-        rightRT.offsetMax = new Vector2(-6f, 0f);
+        rightRT.offsetMax = new Vector2(-8f, 0f);
 
         var rightHlg = rightArea.GetComponent<HorizontalLayoutGroup>();
         rightHlg.spacing = 4f;
@@ -160,7 +160,7 @@ public static class DrawerDispatcher
             {
                 entry.ResetToDefault();
                 onReset?.Invoke();
-            }, CyberPalette.ColorBorderSubtle, CyberPalette.ColorWarningAmber, 40f, 22f);
+            }, CyberPalette.ColorBorderSubtle, CyberPalette.ColorWarningAmber, 38f, 22f);
         }
 
         return row;
