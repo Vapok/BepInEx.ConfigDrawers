@@ -5,10 +5,12 @@
     <Nullable>enable</Nullable>
     <AssemblyName>BepInEx.ConfigDrawers</AssemblyName>
     <RootNamespace>BepInEx.ConfigDrawers</RootNamespace>
+    <Version>1.0.0</Version>
+    <PackageId>BepInEx_ConfigDrawers</PackageId>
     <ReferencesRoot Condition="'$(ReferencesRoot)' == ''">/home/vapok/Modding/References</ReferencesRoot>
     <BEPINEX_CORE>$(ReferencesRoot)/BepInEx/5.4.2350/BepInEx/core</BEPINEX_CORE>
     <UNITY_MANAGED>$(ReferencesRoot)/Valheim/1.0.15/Managed</UNITY_MANAGED>
-    <ReleaseRoot>/home/vapok/Modding/Releases</ReleaseRoot>
+    <ReleaseRoot Condition="'$(ReleaseRoot)' == ''">/home/vapok/Modding/Releases</ReleaseRoot>
     <DevPluginsFolder Condition="'$(DevPluginsFolder)' == ''">/home/vapok/Modding/Gale Profiles/Default/BepInEx/plugins</DevPluginsFolder>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <OutputPath>bin\$(Configuration)\</OutputPath>
@@ -63,7 +65,23 @@
     </Reference>
   </ItemGroup>
 
-  <Target Name="CopyToDev" AfterTargets="Build" Condition="Exists('$(DevPluginsFolder)')">
-    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(DevPluginsFolder)/Vapok-BepInEx_ConfigDrawers" SkipUnchangedFiles="true" />
+  <!-- Debug/Local Build: Auto-deploy to DevPluginsFolder -->
+  <Target Name="CopyToDev" AfterTargets="Build" Condition="('$(Configuration)' == 'Debug' or '$(Configuration)' == 'Local') and Exists('$(DevPluginsFolder)')">
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(DevPluginsFolder)/Vapok-$(PackageId)" SkipUnchangedFiles="true" />
+  </Target>
+
+  <!-- Release Build: Assemble store staging folder & zip package -->
+  <Target Name="Copy" AfterTargets="Build" Condition="'$(Configuration)' == 'Release'">
+    <PropertyGroup>
+      <StagingDir>$(ReleaseRoot)/$(PackageId)-Vapok</StagingDir>
+      <ZipOutput>$(ReleaseRoot)/$(PackageId)-Vapok-$(Version).zip</ZipOutput>
+    </PropertyGroup>
+    <ItemGroup>
+      <PackageDocs Include="$(ProjectDir)../LICENSE.md;$(ProjectDir)../manifest.json;$(ProjectDir)../CHANGELOG.md;$(ProjectDir)../README.md;$(ProjectDir)../icon.png" />
+    </ItemGroup>
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(StagingDir)/plugins" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(PackageDocs)" DestinationFolder="$(StagingDir)" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(DevPluginsFolder)/Vapok-$(PackageId)" SkipUnchangedFiles="true" Condition="Exists('$(DevPluginsFolder)')" />
+    <ZipDirectory SourceDirectory="$(StagingDir)" DestinationFile="$(ZipOutput)" Overwrite="true" />
   </Target>
 </Project>
