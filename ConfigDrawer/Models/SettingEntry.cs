@@ -5,7 +5,7 @@ using System.Reflection;
 using BepInEx.Configuration;
 using UnityEngine;
 
-namespace ConfigDrawer.Models;
+namespace BepInEx.ConfigDrawers.Models;
 
 public class SettingEntry
 {

@@ -1,13 +1,13 @@
 using System;
 using System.Collections;
 using System.Text;
-using ConfigDrawer.Models;
-using ConfigDrawer.UI;
+using BepInEx.ConfigDrawers.Models;
+using BepInEx.ConfigDrawers.UI;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
-namespace ConfigDrawer.Components;
+namespace BepInEx.ConfigDrawers.Components;
 
 public class HoverCardHandler : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
 {

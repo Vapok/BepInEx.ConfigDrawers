@@ -4,7 +4,7 @@ using System.Linq;
 using BepInEx;
 using BepInEx.Configuration;
 
-namespace ConfigDrawer.Models;
+namespace BepInEx.ConfigDrawers.Models;
 
 public class PluginSettingsGroup
 {

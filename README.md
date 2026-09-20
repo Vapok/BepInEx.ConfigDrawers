@@ -1,7 +1,7 @@
-# BepInEx ConfigDrawer
+# BepInEx.BepInEx.ConfigDrawerss
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/Vapok/ConfigDrawer/main/icon.png" width="128" height="128" alt="ConfigDrawer Logo">
+  <img src="https://raw.githubusercontent.com/Vapok/BepInEx.ConfigDrawers/main/icon.png" width="128" height="128" alt="BepInEx.ConfigDrawers Logo">
 </p>
 
 <p align="center">
@@ -9,8 +9,8 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/Vapok/ConfigDrawer/releases"><img src="https://img.shields.io/github/v/release/Vapok/ConfigDrawer?include_prereleases&style=flat-square" alt="GitHub Release"></a>
-  <a href="https://thunderstore.io/c/valheim/p/Vapok/ConfigDrawer/"><img src="https://img.shields.io/thunderstore/v/Vapok/ConfigDrawer?style=flat-square" alt="Thunderstore Version"></a>
+  <a href="https://github.com/Vapok/BepInEx.ConfigDrawers/releases"><img src="https://img.shields.io/github/v/release/Vapok/BepInEx.ConfigDrawers?include_prereleases&style=flat-square" alt="GitHub Release"></a>
+  <a href="https://thunderstore.io/c/valheim/p/Vapok/BepInEx.ConfigDrawers/"><img src="https://img.shields.io/thunderstore/v/Vapok/BepInEx.ConfigDrawers?style=flat-square" alt="Thunderstore Version"></a>
   <a href="https://discord.gg/vapok"><img src="https://img.shields.io/discord/941785535977934898?label=Discord&logo=discord&style=flat-square" alt="Discord"></a>
   <a href="LICENSE.md"><img src="https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square" alt="License"></a>
 </p>
@@ -19,9 +19,9 @@
 
 ## Overview
 
-**BepInEx ConfigDrawer** is a modern, lightweight, high-performance in-game Configuration Manager built from the ground up to replace outdated configuration managers. 
+**BepInEx.BepInEx.ConfigDrawerss** is a modern, lightweight, high-performance in-game Configuration Manager built from the ground up to replace outdated configuration managers. 
 
-Designed with a sleek **Cyber-Console UI** inspired by [Vapok.io](https://vapok.io), `ConfigDrawer` slides out effortlessly as a side drawer when you press your hotkey, keeping your game screen visible and making mod tweaking enjoyable again.
+Designed with a sleek **Cyber-Console UI** inspired by [Vapok.io](https://vapok.io), `BepInEx.ConfigDrawers` slides out effortlessly as a side drawer when you press your hotkey, keeping your game screen visible and making mod tweaking enjoyable again.
 
 ---
 
@@ -44,7 +44,7 @@ Designed with a sleek **Cyber-Console UI** inspired by [Vapok.io](https://vapok.
 
 | Action | Default Input | Description |
 | :--- | :--- | :--- |
-| **Toggle Menu** | `F1` | Opens or closes the ConfigDrawer menu. |
+| **Toggle Menu** | `F1` | Opens or closes the BepInEx.ConfigDrawers menu. |
 | **Close Menu** | `Escape` | Closes the drawer (or reverts an active text box edit). |
 | **Commit Edit** | `Enter` | Saves and applies the current input field value. |
 | **Dock Left / Right** | `[ L ]` / `[ R ]` | Snaps the drawer to the left or right monitor rail. |
@@ -55,7 +55,7 @@ Designed with a sleek **Cyber-Console UI** inspired by [Vapok.io](https://vapok.
 
 ## Compatibility
 
-`ConfigDrawer` provides 100% ecosystem compatibility:
+`BepInEx.ConfigDrawers` provides 100% ecosystem compatibility:
 - **ServerSync Ready**: Automatically reflects locked server settings for non-admin players with clear visual indicators.
 - **Legacy Drawer Bridge**: Seamlessly renders custom drawers provided by third-party BepInEx mods.
 - **Universal Engine**: Built on pure Unity and BepInEx 5—works out of the box with Valheim and other Unity BepInEx titles.
@@ -70,7 +70,7 @@ Designed with a sleek **Cyber-Console UI** inspired by [Vapok.io](https://vapok.
 
 ### Manual Installation
 1. Ensure **BepInEx 5.4** is installed.
-2. Extract `ConfigDrawer.dll` into your `BepInEx/plugins/` directory.
+2. Extract `BepInEx.ConfigDrawers.dll` into your `BepInEx/plugins/` directory.
 
 ---
 
@@ -80,4 +80,4 @@ Created with ❤️ by **Vapok**.
 
 - **Website**: [vapok.io](https://vapok.io)
 - **Discord**: [Join the Vapok Gaming Community](https://discord.gg/vapok)
-- **GitHub**: [Vapok/ConfigDrawer](https://github.com/Vapok/ConfigDrawer)
+- **GitHub**: [Vapok/BepInEx.ConfigDrawers](https://github.com/Vapok/BepInEx.ConfigDrawers)

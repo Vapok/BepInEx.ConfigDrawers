@@ -1,12 +1,12 @@
 using System;
-using ConfigDrawer.Components;
-using ConfigDrawer.Models;
-using ConfigDrawer.UI;
+using BepInEx.ConfigDrawers.Components;
+using BepInEx.ConfigDrawers.Models;
+using BepInEx.ConfigDrawers.UI;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace ConfigDrawer.Drawers.JsonDrawer;
+namespace BepInEx.ConfigDrawers.Drawers.JsonDrawer;
 
 public static class JsonEditorDrawer
 {

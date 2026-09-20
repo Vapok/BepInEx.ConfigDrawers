@@ -1,12 +1,12 @@
 # Changelog
 
-All notable changes to **BepInEx ConfigDrawer** are documented here.
+All notable changes to **BepInEx.BepInEx.ConfigDrawerss** are documented here.
 
 ---
 
 ## [1.0.0] - Initial Release
 
-### Welcome to ConfigDrawer!
+### Welcome to BepInEx.ConfigDrawers!
 - **Brand New Design**: A clean, modern cyber-console menu that slides out smoothly from the edge of your screen.
 - **Easy Editing**: Fixed text boxes so you can edit numbers and text freely without your changes being reset while typing.
 - **Dock Anywhere**: Slides out from the left edge by default. You can drag it anywhere on screen or snap it to the left or right side.

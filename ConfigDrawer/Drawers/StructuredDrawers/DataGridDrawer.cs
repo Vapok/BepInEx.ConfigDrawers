@@ -1,13 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using ConfigDrawer.Components;
-using ConfigDrawer.Models;
-using ConfigDrawer.UI;
+using BepInEx.ConfigDrawers.Components;
+using BepInEx.ConfigDrawers.Models;
+using BepInEx.ConfigDrawers.UI;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace ConfigDrawer.Drawers.StructuredDrawers;
+namespace BepInEx.ConfigDrawers.Drawers.StructuredDrawers;
 
 public static class DataGridDrawer
 {

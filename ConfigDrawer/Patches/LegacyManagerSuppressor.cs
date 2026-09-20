@@ -2,10 +2,10 @@ using System;
 using System.Reflection;
 using BepInEx.Bootstrap;
 using BepInEx.Logging;
-using ConfigDrawer.Configuration;
+using BepInEx.ConfigDrawers.Configuration;
 using UnityEngine;
 
-namespace ConfigDrawer.Patches;
+namespace BepInEx.ConfigDrawers.Patches;
 
 public static class LegacyManagerSuppressor
 {

@@ -1,13 +1,13 @@
 using System;
 using System.Globalization;
 using BepInEx.Configuration;
-using ConfigDrawer.Components;
-using ConfigDrawer.Models;
-using ConfigDrawer.UI;
+using BepInEx.ConfigDrawers.Components;
+using BepInEx.ConfigDrawers.Models;
+using BepInEx.ConfigDrawers.UI;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace ConfigDrawer.Drawers.PrimitiveDrawers;
+namespace BepInEx.ConfigDrawers.Drawers.PrimitiveDrawers;
 
 public static class NumberDrawer
 {

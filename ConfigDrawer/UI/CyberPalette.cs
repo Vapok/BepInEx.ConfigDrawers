@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace ConfigDrawer.UI;
+namespace BepInEx.ConfigDrawers.UI;
 
 public static class CyberPalette
 {

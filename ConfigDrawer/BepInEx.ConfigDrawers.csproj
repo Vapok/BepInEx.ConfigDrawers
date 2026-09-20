@@ -3,8 +3,8 @@
     <TargetFramework>net48</TargetFramework>
     <LangVersion>10.0</LangVersion>
     <Nullable>enable</Nullable>
-    <AssemblyName>ConfigDrawer</AssemblyName>
-    <RootNamespace>ConfigDrawer</RootNamespace>
+    <AssemblyName>BepInEx.ConfigDrawers</AssemblyName>
+    <RootNamespace>BepInEx.ConfigDrawers</RootNamespace>
     <ReferencesRoot Condition="'$(ReferencesRoot)' == ''">/home/vapok/Modding/References</ReferencesRoot>
     <BEPINEX_CORE>$(ReferencesRoot)/BepInEx/5.4.2350/BepInEx/core</BEPINEX_CORE>
     <UNITY_MANAGED>$(ReferencesRoot)/Valheim/1.0.15/Managed</UNITY_MANAGED>

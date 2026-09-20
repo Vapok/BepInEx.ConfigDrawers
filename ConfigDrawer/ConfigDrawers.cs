@@ -1,20 +1,20 @@
 using BepInEx;
 using BepInEx.Bootstrap;
-using ConfigDrawer.Components;
-using ConfigDrawer.Configuration;
-using ConfigDrawer.Patches;
+using BepInEx.ConfigDrawers.Components;
+using BepInEx.ConfigDrawers.Configuration;
+using BepInEx.ConfigDrawers.Patches;
 using UnityEngine;
 
-namespace ConfigDrawer;
+namespace BepInEx.ConfigDrawers;
 
 [BepInPlugin(ModGuid, ModName, ModVersion)]
-public class ConfigDrawer : BaseUnityPlugin
+public class ConfigDrawers : BaseUnityPlugin
 {
-    public const string ModGuid = "vapok.mods.configdrawer";
-    public const string ModName = "BepInEx ConfigDrawer";
+    public const string ModGuid = "vapok.bepinex.configdrawers";
+    public const string ModName = "BepInEx.ConfigDrawers";
     public const string ModVersion = "1.0.0";
 
-    public static ConfigDrawer? Instance { get; private set; }
+    public static ConfigDrawers? Instance { get; private set; }
 
     private void Awake()
     {

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using BepInEx.Bootstrap;
 
-namespace ConfigDrawer.Models;
+namespace BepInEx.ConfigDrawers.Models;
 
 public class ConfigRegistry
 {

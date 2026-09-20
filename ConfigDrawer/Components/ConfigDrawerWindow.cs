@@ -1,18 +1,18 @@
-using ConfigDrawer.Drawers;
+using BepInEx.ConfigDrawers.Drawers;
 using BepInEx.Configuration;
 using System;
 using System.Collections;
 using System.Linq;
 using System.Reflection;
-using ConfigDrawer.Configuration;
-using ConfigDrawer.Models;
-using ConfigDrawer.UI;
+using BepInEx.ConfigDrawers.Configuration;
+using BepInEx.ConfigDrawers.Models;
+using BepInEx.ConfigDrawers.UI;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
-namespace ConfigDrawer.Components;
+namespace BepInEx.ConfigDrawers.Components;
 
 public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler
 {
@@ -90,7 +90,7 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
         var fill = headerObj.transform.Find("Fill");
         var target = fill != null ? fill : headerObj.transform;
 
-        var title = UiFactory.CreateLabel(target, "Title", "// BEPINEX CONFIG DRAWER //", CyberPalette.ColorIceBlue, 13f);
+        var title = UiFactory.CreateLabel(target, "Title", "// BEPINEX CONFIG DRAWERS //", CyberPalette.ColorIceBlue, 13f);
         var titleRT = title.GetComponent<RectTransform>();
         titleRT.anchorMin = new Vector2(0f, 0f);
         titleRT.anchorMax = new Vector2(0.45f, 1f);

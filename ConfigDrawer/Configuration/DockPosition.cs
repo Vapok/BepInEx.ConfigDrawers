@@ -1,4 +1,4 @@
-namespace ConfigDrawer.Configuration;
+namespace BepInEx.ConfigDrawers.Configuration;
 
 public enum DockPosition
 {

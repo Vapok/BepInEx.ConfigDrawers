@@ -1,6 +1,6 @@
 using System;
-using ConfigDrawer.Components;
-using ConfigDrawer.Models;
+using BepInEx.ConfigDrawers.Components;
+using BepInEx.ConfigDrawers.Models;
 using UnityEngine;
 
 namespace ConfigurationManager;

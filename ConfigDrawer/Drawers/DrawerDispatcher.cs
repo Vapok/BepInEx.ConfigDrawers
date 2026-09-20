@@ -1,13 +1,13 @@
 using System;
 using BepInEx.Configuration;
-using ConfigDrawer.Drawers.JsonDrawer;
-using ConfigDrawer.Drawers.LegacyBridge;
-using ConfigDrawer.Drawers.PrimitiveDrawers;
-using ConfigDrawer.Drawers.StructuredDrawers;
-using ConfigDrawer.Models;
+using BepInEx.ConfigDrawers.Drawers.JsonDrawer;
+using BepInEx.ConfigDrawers.Drawers.LegacyBridge;
+using BepInEx.ConfigDrawers.Drawers.PrimitiveDrawers;
+using BepInEx.ConfigDrawers.Drawers.StructuredDrawers;
+using BepInEx.ConfigDrawers.Models;
 using UnityEngine;
 
-namespace ConfigDrawer.Drawers;
+namespace BepInEx.ConfigDrawers.Drawers;
 
 public static class DrawerDispatcher
 {

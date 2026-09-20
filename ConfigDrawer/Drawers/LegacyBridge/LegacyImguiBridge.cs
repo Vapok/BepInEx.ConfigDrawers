@@ -1,8 +1,8 @@
 using System;
-using ConfigDrawer.Models;
+using BepInEx.ConfigDrawers.Models;
 using UnityEngine;
 
-namespace ConfigDrawer.Drawers.LegacyBridge;
+namespace BepInEx.ConfigDrawers.Drawers.LegacyBridge;
 
 public class LegacyImguiBridge : MonoBehaviour
 {

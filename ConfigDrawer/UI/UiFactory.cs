@@ -4,7 +4,7 @@ using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.UI;
 
-namespace ConfigDrawer.UI;
+namespace BepInEx.ConfigDrawers.UI;
 
 public static class UiFactory
 {

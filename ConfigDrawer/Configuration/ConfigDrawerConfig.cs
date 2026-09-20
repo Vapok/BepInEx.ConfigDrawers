@@ -2,7 +2,7 @@ using System;
 using BepInEx.Configuration;
 using UnityEngine;
 
-namespace ConfigDrawer.Configuration;
+namespace BepInEx.ConfigDrawers.Configuration;
 
 public static class ConfigDrawerConfig
 {
