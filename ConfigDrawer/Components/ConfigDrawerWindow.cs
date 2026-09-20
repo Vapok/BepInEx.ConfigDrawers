@@ -477,7 +477,7 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
         rightRT.offsetMin = Vector2.zero;
         rightRT.offsetMax = new Vector2(-8f, 0f);
 
-        var badgeLabel = UiFactory.CreateLabel(rightArea.transform, "Badge", $"<color=#{ColorUtility.ToHtmlStringRGB(CyberPalette.ColorIceBlueBright)}>{plugin.AllSettings.Count} settings</color>  <color=#{ColorUtility.ToHtmlStringRGB(CyberPalette.ColorCyberTeal)}>→</color>", CyberPalette.ColorTextMain, 10f, TextAlignmentOptions.MidlineRight);
+        var badgeLabel = UiFactory.CreateLabel(rightArea.transform, "Badge", $"<color=#{ColorUtility.ToHtmlStringRGB(CyberPalette.ColorIceBlueBright)}>{plugin.AllSettings.Count} settings</color>  <color=#{ColorUtility.ToHtmlStringRGB(CyberPalette.ColorCyberTeal)}>></color>", CyberPalette.ColorTextMain, 10f, TextAlignmentOptions.MidlineRight);
         var badgeRT = badgeLabel.GetComponent<RectTransform>();
         badgeRT.anchorMin = Vector2.zero;
         badgeRT.anchorMax = Vector2.one;
@@ -520,7 +520,7 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
         hlg.childForceExpandWidth = false;
         hlg.childForceExpandHeight = false;
 
-        UiFactory.CreateCyberButton(navRow.transform, "BackBtn", "← Mods", PopulatePlugins, CyberPalette.ColorIceBlue, CyberPalette.ColorIceBlueBright, 65f, 22f);
+        UiFactory.CreateCyberButton(navRow.transform, "BackBtn", "< Mods", PopulatePlugins, CyberPalette.ColorIceBlue, CyberPalette.ColorIceBlueBright, 65f, 22f);
 
         var titleLabel = UiFactory.CreateLabel(navRow.transform, "ModHeader", $"<b>{plugin.ModName}</b> <color=#{ColorUtility.ToHtmlStringRGB(CyberPalette.ColorCyberTeal)}>v{plugin.Version}</color>", CyberPalette.ColorTextMain, 11f, TextAlignmentOptions.MidlineLeft);
         var titleRT = titleLabel.GetComponent<RectTransform>();
