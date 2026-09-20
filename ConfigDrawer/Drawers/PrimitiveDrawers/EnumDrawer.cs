@@ -25,7 +25,7 @@ public static class EnumDrawer
                 var tmp = btnObj.GetComponentInChildren<TextMeshProUGUI>();
                 if (tmp != null)
                 {
-                    tmp.text = $"[ {cur} ]";
+                    tmp.text = cur;
                 }
             }
         });
@@ -33,10 +33,10 @@ public static class EnumDrawer
         var currentVal = entry.ConfigEntry.BoxedValue;
         var labelText = currentVal?.ToString() ?? "None";
 
-        btnObj = UiFactory.CreateCyberButton(valueArea, "EnumBtn", $"[ {labelText} ]", () =>
+        btnObj = UiFactory.CreateCyberButton(valueArea, "EnumBtn", labelText, () =>
         {
             CycleNext(entry, btnObj);
-        }, CyberPalette.ColorCyberTeal, CyberPalette.ColorIceBlueBright, 110f, 22f);
+        }, CyberPalette.ColorCyberTeal, CyberPalette.ColorIceBlueBright, 100f, 22f);
 
         btnObj.transform.SetAsFirstSibling();
 
@@ -60,7 +60,7 @@ public static class EnumDrawer
             var tmp = btnObj.GetComponentInChildren<TextMeshProUGUI>();
             if (tmp != null)
             {
-                tmp.text = $"[ {nextVal} ]";
+                tmp.text = nextVal.ToString();
             }
         }
     }

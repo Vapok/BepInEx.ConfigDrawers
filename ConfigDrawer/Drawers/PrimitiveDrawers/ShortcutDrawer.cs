@@ -27,14 +27,14 @@ public static class ShortcutDrawer
                 var tmp = btnObj.GetComponentInChildren<TextMeshProUGUI>();
                 if (tmp != null)
                 {
-                    tmp.text = cur.MainKey != KeyCode.None ? $"[ {cur.MainKey} ]" : "[ NONE ]";
+                    tmp.text = cur.MainKey != KeyCode.None ? cur.MainKey.ToString() : "None";
                     tmp.color = CyberPalette.ColorIceBlueBright;
                 }
             }
         });
 
         var shortcut = entry.ConfigEntry.BoxedValue as KeyboardShortcut? ?? new KeyboardShortcut(KeyCode.None);
-        var labelText = shortcut.MainKey != KeyCode.None ? $"[ {shortcut.MainKey} ]" : "[ NONE ]";
+        var labelText = shortcut.MainKey != KeyCode.None ? shortcut.MainKey.ToString() : "None";
 
         btnObj = UiFactory.CreateCyberButton(valueArea, "ShortcutBtn", labelText, () =>
         {
@@ -43,7 +43,7 @@ public static class ShortcutDrawer
             {
                 mono.StartCoroutine(RecordRoutine(entry, btnObj));
             }
-        }, CyberPalette.ColorIceBlue, CyberPalette.ColorIceBlueBright, 90f, 22f);
+        }, CyberPalette.ColorIceBlue, CyberPalette.ColorIceBlueBright, 70f, 22f);
 
         btnObj.transform.SetAsFirstSibling();
 
@@ -55,7 +55,7 @@ public static class ShortcutDrawer
         var tmp = btnObj.GetComponentInChildren<TextMeshProUGUI>();
         if (tmp != null)
         {
-            tmp.text = "[ PRESS KEY ]";
+            tmp.text = "Press key...";
             tmp.color = CyberPalette.ColorWarningAmber;
         }
 
@@ -82,7 +82,7 @@ public static class ShortcutDrawer
         if (tmp != null)
         {
             var updated = entry.ConfigEntry.BoxedValue as KeyboardShortcut? ?? new KeyboardShortcut(KeyCode.None);
-            tmp.text = updated.MainKey != KeyCode.None ? $"[ {updated.MainKey} ]" : "[ NONE ]";
+            tmp.text = updated.MainKey != KeyCode.None ? updated.MainKey.ToString() : "None";
             tmp.color = CyberPalette.ColorIceBlueBright;
         }
     }

@@ -9,6 +9,7 @@ namespace BepInEx.ConfigDrawers.UI;
 
 public static class UiFactory
 {
+#pragma warning disable CS0618
     private static TMP_FontAsset? _cachedFont;
 
     public static float GetFontScaleFactor()
@@ -16,8 +17,8 @@ public static class UiFactory
         return ConfigDrawerConfig.UiFontSize?.Value switch
         {
             FontSizeScale.Small => 0.85f,
-            FontSizeScale.Large => 1.18f,
-            _ => 1.0f
+            FontSizeScale.Large => 1.08f,
+            _ => 0.95f
         };
     }
 
@@ -194,8 +195,8 @@ public static class UiFactory
         var textRT = textObj.GetComponent<RectTransform>();
         textRT.anchorMin = Vector2.zero;
         textRT.anchorMax = Vector2.one;
-        textRT.offsetMin = new Vector2(2f, 0f);
-        textRT.offsetMax = new Vector2(-2f, 0f);
+        textRT.offsetMin = new Vector2(3f, 0f);
+        textRT.offsetMax = new Vector2(-3f, 0f);
 
         var tmp = textObj.GetComponent<TextMeshProUGUI>();
         var font = ResolveFont();
@@ -208,6 +209,7 @@ public static class UiFactory
         tmp.fontSize = GetScaledFontSize(10.5f);
         tmp.color = textColor;
         tmp.alignment = TextAlignmentOptions.Center;
+        tmp.enableWordWrapping = false;
         tmp.overflowMode = TextOverflowModes.Overflow;
 
         if (enableHover)
@@ -237,6 +239,7 @@ public static class UiFactory
         tmp.fontSize = GetScaledFontSize(fontSize);
         tmp.color = color;
         tmp.alignment = alignment;
+        tmp.enableWordWrapping = false;
         tmp.overflowMode = TextOverflowModes.Ellipsis;
 
         return tmp;
@@ -279,6 +282,7 @@ public static class UiFactory
 
         textTmp.fontSize = GetScaledFontSize(10.5f);
         textTmp.color = CyberPalette.ColorTextMain;
+        textTmp.enableWordWrapping = false;
 
         var input = root.AddComponent<TMP_InputField>();
         input.textComponent = textTmp;
@@ -303,6 +307,7 @@ public static class UiFactory
             placeholderTmp.fontSize = GetScaledFontSize(10.5f);
             placeholderTmp.color = CyberPalette.ColorTextMuted;
             placeholderTmp.text = placeholderText;
+            placeholderTmp.enableWordWrapping = false;
 
             input.placeholder = placeholderTmp;
         }

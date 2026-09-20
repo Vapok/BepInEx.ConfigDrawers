@@ -7,6 +7,7 @@ using BepInEx.ConfigDrawers.Drawers.PrimitiveDrawers;
 using BepInEx.ConfigDrawers.Drawers.StructuredDrawers;
 using BepInEx.ConfigDrawers.Models;
 using BepInEx.ConfigDrawers.UI;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -97,7 +98,7 @@ public static class DrawerDispatcher
         leftRT.offsetMax = Vector2.zero;
 
         var leftHlg = leftArea.GetComponent<HorizontalLayoutGroup>();
-        leftHlg.spacing = 4f;
+        leftHlg.spacing = 6f;
         leftHlg.childAlignment = TextAnchor.MiddleLeft;
         leftHlg.childControlWidth = true;
         leftHlg.childControlHeight = true;
@@ -106,14 +107,27 @@ public static class DrawerDispatcher
 
         if (entry.IsAdminOnly || !entry.IsUnlocked)
         {
-            var lockLabel = UiFactory.CreateLabel(leftArea.transform, "LockBadge", "[🔒]", CyberPalette.ColorWarningAmber, 9.5f);
-            var lockLayout = lockLabel.gameObject.AddComponent<LayoutElement>();
-            lockLayout.minWidth = 18f;
-            lockLayout.preferredWidth = 18f;
-            lockLayout.flexibleWidth = 0f;
-            lockLayout.minHeight = 18f;
-            lockLayout.preferredHeight = 18f;
-            lockLayout.flexibleHeight = 0f;
+            var badgePanel = UiFactory.CreatePanel(leftArea.transform, "SyncBadge", CyberPalette.ColorWarningAmber, CyberPalette.ColorVoidBlack, 1f);
+            var badgeRT = badgePanel.GetComponent<RectTransform>();
+            badgeRT.sizeDelta = new Vector2(34f, 16f);
+
+            var badgeLayout = badgePanel.AddComponent<LayoutElement>();
+            badgeLayout.minWidth = 34f;
+            badgeLayout.preferredWidth = 34f;
+            badgeLayout.flexibleWidth = 0f;
+            badgeLayout.minHeight = 16f;
+            badgeLayout.preferredHeight = 16f;
+            badgeLayout.flexibleHeight = 0f;
+
+            var badgeFill = badgePanel.transform.Find("Fill");
+            var badgeTarget = badgeFill != null ? badgeFill : badgePanel.transform;
+
+            var badgeLabel = UiFactory.CreateLabel(badgeTarget, "Text", "SYNC", CyberPalette.ColorWarningAmber, 8.5f, TextAlignmentOptions.Center);
+            var badgeLabelRT = badgeLabel.GetComponent<RectTransform>();
+            badgeLabelRT.anchorMin = Vector2.zero;
+            badgeLabelRT.anchorMax = Vector2.one;
+            badgeLabelRT.offsetMin = Vector2.zero;
+            badgeLabelRT.offsetMax = Vector2.zero;
         }
 
         var label = UiFactory.CreateLabel(leftArea.transform, "Label", entry.DispName, entry.EntryColor, 10.5f);
@@ -130,10 +144,10 @@ public static class DrawerDispatcher
         rightRT.anchorMin = new Vector2(0.66f, 0f);
         rightRT.anchorMax = new Vector2(1f, 1f);
         rightRT.offsetMin = Vector2.zero;
-        rightRT.offsetMax = new Vector2(-4f, 0f);
+        rightRT.offsetMax = new Vector2(-6f, 0f);
 
         var rightHlg = rightArea.GetComponent<HorizontalLayoutGroup>();
-        rightHlg.spacing = 3f;
+        rightHlg.spacing = 4f;
         rightHlg.childAlignment = TextAnchor.MiddleRight;
         rightHlg.childControlWidth = false;
         rightHlg.childControlHeight = false;
@@ -142,11 +156,11 @@ public static class DrawerDispatcher
 
         if (!entry.HideDefaultButton && entry.DefaultValue != null)
         {
-            UiFactory.CreateCyberButton(rightArea.transform, "ResetBtn", "[ R ]", () =>
+            UiFactory.CreateCyberButton(rightArea.transform, "ResetBtn", "Reset", () =>
             {
                 entry.ResetToDefault();
                 onReset?.Invoke();
-            }, CyberPalette.ColorBorderSubtle, CyberPalette.ColorWarningAmber, 22f, 20f);
+            }, CyberPalette.ColorBorderSubtle, CyberPalette.ColorWarningAmber, 40f, 22f);
         }
 
         return row;

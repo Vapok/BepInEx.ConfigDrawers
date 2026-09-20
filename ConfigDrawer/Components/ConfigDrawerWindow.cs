@@ -25,6 +25,7 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
     private Canvas? _canvas;
     private CanvasScaler? _canvasScaler;
     private RectTransform? _drawerRootRT;
+    private GameObject? _resizeHandleObj;
     private Transform? _contentContainer;
     private TMP_InputField? _searchField;
     private TextMeshProUGUI? _rebindButtonText;
@@ -63,6 +64,8 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
 
         var drawerObj = UiFactory.CreatePanel(transform, "DrawerRoot", CyberPalette.ColorIceBlue, CyberPalette.ColorVoidBlack, 1f);
         _drawerRootRT = drawerObj.GetComponent<RectTransform>();
+
+        BuildResizeHandle(drawerObj.transform);
         ApplyDockPosition(ConfigDrawerConfig.DefaultDockPosition.Value);
 
         var fill = drawerObj.transform.Find("Fill");
@@ -73,6 +76,33 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
         BuildContentArea(container);
 
         UiFactory.RefreshAllFonts(gameObject);
+    }
+
+    private void BuildResizeHandle(Transform parent)
+    {
+        _resizeHandleObj = UiFactory.CreatePanel(parent, "ResizeHandle", CyberPalette.ColorBorderSubtle, CyberPalette.ColorCardSurface, 1f);
+        var rt = _resizeHandleObj.GetComponent<RectTransform>();
+        rt.anchorMin = new Vector2(1f, 0f);
+        rt.anchorMax = new Vector2(1f, 0f);
+        rt.pivot = new Vector2(1f, 0f);
+        rt.sizeDelta = new Vector2(16f, 16f);
+        rt.anchoredPosition = Vector2.zero;
+
+        var fill = _resizeHandleObj.transform.Find("Fill");
+        var target = fill != null ? fill : _resizeHandleObj.transform;
+
+        var gripLabel = UiFactory.CreateLabel(target, "Grip", "::", CyberPalette.ColorIceBlueBright, 9f, TextAlignmentOptions.Center);
+        var gripRT = gripLabel.GetComponent<RectTransform>();
+        gripRT.anchorMin = Vector2.zero;
+        gripRT.anchorMax = Vector2.one;
+        gripRT.offsetMin = Vector2.zero;
+        gripRT.offsetMax = Vector2.zero;
+
+        var resizer = _resizeHandleObj.AddComponent<WindowResizeHandler>();
+        if (_drawerRootRT != null)
+        {
+            resizer.SetTarget(_drawerRootRT);
+        }
     }
 
     private void EnsureEventSystem()
@@ -103,11 +133,11 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
         titleArea.transform.SetParent(target, false);
         var titleRT = titleArea.GetComponent<RectTransform>();
         titleRT.anchorMin = new Vector2(0f, 0f);
-        titleRT.anchorMax = new Vector2(0.35f, 1f);
-        titleRT.offsetMin = new Vector2(6f, 0f);
+        titleRT.anchorMax = new Vector2(0.32f, 1f);
+        titleRT.offsetMin = new Vector2(8f, 0f);
         titleRT.offsetMax = Vector2.zero;
 
-        var title = UiFactory.CreateLabel(titleArea.transform, "Title", "<b>// CONFIG //</b>", CyberPalette.ColorIceBlueBright, 11.5f, TextAlignmentOptions.Left);
+        var title = UiFactory.CreateLabel(titleArea.transform, "Title", "<b>CONFIG DRAWERS</b>", CyberPalette.ColorIceBlueBright, 11f, TextAlignmentOptions.Left);
         var labelRT = title.GetComponent<RectTransform>();
         labelRT.anchorMin = Vector2.zero;
         labelRT.anchorMax = Vector2.one;
@@ -117,7 +147,7 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
         var controlsRow = new GameObject("Controls", typeof(RectTransform), typeof(HorizontalLayoutGroup));
         controlsRow.transform.SetParent(target, false);
         var controlsRT = controlsRow.GetComponent<RectTransform>();
-        controlsRT.anchorMin = new Vector2(0.35f, 0f);
+        controlsRT.anchorMin = new Vector2(0.32f, 0f);
         controlsRT.anchorMax = new Vector2(1f, 1f);
         controlsRT.offsetMin = Vector2.zero;
         controlsRT.offsetMax = new Vector2(-4f, 0f);
@@ -130,25 +160,25 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
         hlg.childForceExpandWidth = false;
         hlg.childForceExpandHeight = false;
 
-        var rebindBtn = UiFactory.CreateCyberButton(controlsRow.transform, "RebindBtn", $"[ {ConfigDrawerConfig.ToggleKeybind.Value.MainKey} ]", OnStartRebindClicked, CyberPalette.ColorIceBlue, CyberPalette.ColorIceBlueBright, 54f, 22f);
+        var rebindBtn = UiFactory.CreateCyberButton(controlsRow.transform, "RebindBtn", $"{ConfigDrawerConfig.ToggleKeybind.Value.MainKey}", OnStartRebindClicked, CyberPalette.ColorIceBlue, CyberPalette.ColorIceBlueBright, 46f, 22f);
         _rebindButtonText = rebindBtn.GetComponentInChildren<TextMeshProUGUI>();
 
-        var fontBtn = UiFactory.CreateCyberButton(controlsRow.transform, "FontBtn", GetFontSizeLabel(), OnCycleFontSize, CyberPalette.ColorBorderSubtle, CyberPalette.ColorIceBlue, 60f, 22f);
+        var fontBtn = UiFactory.CreateCyberButton(controlsRow.transform, "FontBtn", GetFontSizeLabel(), OnCycleFontSize, CyberPalette.ColorBorderSubtle, CyberPalette.ColorIceBlue, 74f, 22f);
         _fontSizeButtonText = fontBtn.GetComponentInChildren<TextMeshProUGUI>();
 
-        UiFactory.CreateCyberButton(controlsRow.transform, "DockLeftBtn", "[ L ]", () => ApplyDockPosition(DockPosition.Left), CyberPalette.ColorBorderSubtle, CyberPalette.ColorTextMain, 26f, 22f);
-        UiFactory.CreateCyberButton(controlsRow.transform, "DockRightBtn", "[ R ]", () => ApplyDockPosition(DockPosition.Right), CyberPalette.ColorBorderSubtle, CyberPalette.ColorTextMain, 26f, 22f);
-        UiFactory.CreateCyberButton(controlsRow.transform, "DetachBtn", "[ POP ]", () => ApplyDockPosition(DockPosition.Floating), CyberPalette.ColorBorderSubtle, CyberPalette.ColorTextMain, 34f, 22f);
-        UiFactory.CreateCyberButton(controlsRow.transform, "CloseBtn", "[ X ]", () => SetVisible(false), CyberPalette.ColorWarningAmber, CyberPalette.ColorTextMain, 26f, 22f);
+        UiFactory.CreateCyberButton(controlsRow.transform, "DockLeftBtn", "Left", () => ApplyDockPosition(DockPosition.Left), CyberPalette.ColorBorderSubtle, CyberPalette.ColorTextMain, 36f, 22f);
+        UiFactory.CreateCyberButton(controlsRow.transform, "DockRightBtn", "Right", () => ApplyDockPosition(DockPosition.Right), CyberPalette.ColorBorderSubtle, CyberPalette.ColorTextMain, 40f, 22f);
+        UiFactory.CreateCyberButton(controlsRow.transform, "DetachBtn", "Float", () => ApplyDockPosition(DockPosition.Floating), CyberPalette.ColorBorderSubtle, CyberPalette.ColorTextMain, 40f, 22f);
+        UiFactory.CreateCyberButton(controlsRow.transform, "CloseBtn", "✕", () => SetVisible(false), CyberPalette.ColorWarningAmber, CyberPalette.ColorTextMain, 24f, 22f);
     }
 
     private string GetFontSizeLabel()
     {
         return ConfigDrawerConfig.UiFontSize.Value switch
         {
-            FontSizeScale.Small => "[ F:SML ]",
-            FontSizeScale.Large => "[ F:LRG ]",
-            _ => "[ F:NORM ]"
+            FontSizeScale.Small => "Font: Sml",
+            FontSizeScale.Large => "Font: Lrg",
+            _ => "Font: Norm"
         };
     }
 
@@ -182,7 +212,7 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
         searchRT.anchoredPosition = new Vector2(0f, -42f);
         searchRT.sizeDelta = new Vector2(-10f, 26f);
 
-        var (_, input) = UiFactory.CreateInputField(searchContainer.transform, "SearchInput", "", OnSearchChanged, -1f, 26f, "SEARCH MODS OR SETTINGS...");
+        var (_, input) = UiFactory.CreateInputField(searchContainer.transform, "SearchInput", "", OnSearchChanged, -1f, 26f, "Search settings or mods...");
         _searchField = input;
         input.onValueChanged.AddListener(OnSearchChanged);
 
@@ -265,7 +295,7 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
         var query = _searchField?.text ?? string.Empty;
         var plugins = ConfigRegistry.Instance.SearchPlugins(query, !ConfigDrawerConfig.HideAdvancedByDefault.Value).ToList();
 
-        var headerRow = UiFactory.CreateLabel(_contentContainer, "ListHeader", $"// LOADED PLUGINS: [ {plugins.Count} ] //", CyberPalette.ColorIceBlueBright, 10.5f);
+        var headerRow = UiFactory.CreateLabel(_contentContainer, "ListHeader", $"LOADED PLUGINS ({plugins.Count})", CyberPalette.ColorIceBlueBright, 10.5f);
         var headerRT = headerRow.GetComponent<RectTransform>();
         headerRT.anchorMin = new Vector2(0f, 1f);
         headerRT.anchorMax = new Vector2(1f, 1f);
@@ -374,7 +404,7 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
         rightRT.offsetMin = Vector2.zero;
         rightRT.offsetMax = new Vector2(-8f, 0f);
 
-        var badgeLabel = UiFactory.CreateLabel(rightArea.transform, "Badge", $"<color=#{ColorUtility.ToHtmlStringRGB(CyberPalette.ColorIceBlueBright)}>[ {plugin.AllSettings.Count} ]</color>  <color=#{ColorUtility.ToHtmlStringRGB(CyberPalette.ColorCyberTeal)}>></color>", CyberPalette.ColorTextMain, 10.5f, TextAlignmentOptions.Right);
+        var badgeLabel = UiFactory.CreateLabel(rightArea.transform, "Badge", $"<color=#{ColorUtility.ToHtmlStringRGB(CyberPalette.ColorIceBlueBright)}>{plugin.AllSettings.Count} settings</color>  <color=#{ColorUtility.ToHtmlStringRGB(CyberPalette.ColorCyberTeal)}>→</color>", CyberPalette.ColorTextMain, 10f, TextAlignmentOptions.Right);
         var badgeRT = badgeLabel.GetComponent<RectTransform>();
         badgeRT.anchorMin = Vector2.zero;
         badgeRT.anchorMax = Vector2.one;
@@ -416,13 +446,13 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
         hlg.childForceExpandWidth = false;
         hlg.childForceExpandHeight = false;
 
-        UiFactory.CreateCyberButton(navRow.transform, "BackBtn", "[ < MODS ]", PopulatePlugins, CyberPalette.ColorIceBlue, CyberPalette.ColorIceBlueBright, 68f, 22f);
+        UiFactory.CreateCyberButton(navRow.transform, "BackBtn", "← Mods", PopulatePlugins, CyberPalette.ColorIceBlue, CyberPalette.ColorIceBlueBright, 65f, 22f);
 
         var titleLabel = UiFactory.CreateLabel(navRow.transform, "ModHeader", $"<b>{plugin.ModName}</b> <color=#{ColorUtility.ToHtmlStringRGB(CyberPalette.ColorCyberTeal)}>v{plugin.Version}</color>", CyberPalette.ColorTextMain, 11f);
         var titleLayout = titleLabel.gameObject.AddComponent<LayoutElement>();
         titleLayout.flexibleWidth = 1f;
 
-        UiFactory.CreateCyberButton(navRow.transform, "ExpandBtn", "[ EXP ]", () =>
+        UiFactory.CreateCyberButton(navRow.transform, "ExpandBtn", "Expand", () =>
         {
             var cats = plugin.GetFilteredCategories(_searchField?.text ?? string.Empty, !ConfigDrawerConfig.HideAdvancedByDefault.Value);
             foreach (var c in cats)
@@ -430,13 +460,13 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
                 _expandedCategories.Add(c.Key);
             }
             ShowPluginSettings(plugin);
-        }, CyberPalette.ColorBorderSubtle, CyberPalette.ColorTextMuted, 46f, 22f);
+        }, CyberPalette.ColorBorderSubtle, CyberPalette.ColorTextMuted, 52f, 22f);
 
-        UiFactory.CreateCyberButton(navRow.transform, "CollapseBtn", "[ COL ]", () =>
+        UiFactory.CreateCyberButton(navRow.transform, "CollapseBtn", "Collapse", () =>
         {
             _expandedCategories.Clear();
             ShowPluginSettings(plugin);
-        }, CyberPalette.ColorBorderSubtle, CyberPalette.ColorTextMuted, 46f, 22f);
+        }, CyberPalette.ColorBorderSubtle, CyberPalette.ColorTextMuted, 60f, 22f);
 
         var scrollObj = new GameObject("SettingsScroll", typeof(RectTransform), typeof(ScrollRect));
         scrollObj.transform.SetParent(_contentContainer, false);
@@ -511,13 +541,13 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
             var fill = catPanel.transform.Find("Fill");
             var target = fill != null ? fill : catPanel.transform;
 
-            var arrow = isExpanded ? "[ v ]" : "[ > ]";
-            var catLabel = UiFactory.CreateLabel(target, "CatTitle", $"{arrow} // {catKey.ToUpperInvariant()} //  <color=#{ColorUtility.ToHtmlStringRGB(CyberPalette.ColorIceBlueBright)}>[ {categoryGroup.Value.Count} ]</color>", CyberPalette.ColorIceBlueBright, 10.5f);
+            var arrow = isExpanded ? "▼" : "►";
+            var catLabel = UiFactory.CreateLabel(target, "CatTitle", $"{arrow}  {catKey.ToUpperInvariant()}  <color=#{ColorUtility.ToHtmlStringRGB(CyberPalette.ColorIceBlueBright)}>({categoryGroup.Value.Count})</color>", CyberPalette.ColorIceBlueBright, 10.5f);
             var catRT = catLabel.GetComponent<RectTransform>();
             catRT.anchorMin = Vector2.zero;
             catRT.anchorMax = Vector2.one;
-            catRT.offsetMin = new Vector2(6f, 0f);
-            catRT.offsetMax = new Vector2(-6f, 0f);
+            catRT.offsetMin = new Vector2(8f, 0f);
+            catRT.offsetMax = new Vector2(-8f, 0f);
 
             if (isExpanded)
             {
@@ -556,7 +586,7 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
         _isRecordingKeybind = true;
         if (_rebindButtonText != null)
         {
-            _rebindButtonText.text = "[ ... ]";
+            _rebindButtonText.text = "...";
             _rebindButtonText.color = CyberPalette.ColorWarningAmber;
         }
 
@@ -582,7 +612,7 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
         _isRecordingKeybind = false;
         if (_rebindButtonText != null)
         {
-            _rebindButtonText.text = $"[ {ConfigDrawerConfig.ToggleKeybind.Value.MainKey} ]";
+            _rebindButtonText.text = $"{ConfigDrawerConfig.ToggleKeybind.Value.MainKey}";
             _rebindButtonText.color = CyberPalette.ColorIceBlueBright;
         }
     }
@@ -596,6 +626,11 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
         }
 
         var width = ConfigDrawerConfig.DrawerWidth.Value;
+
+        if (_resizeHandleObj != null)
+        {
+            _resizeHandleObj.SetActive(position == DockPosition.Floating);
+        }
 
         switch (position)
         {
@@ -619,7 +654,7 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
                 _drawerRootRT.anchorMin = new Vector2(0.5f, 0.5f);
                 _drawerRootRT.anchorMax = new Vector2(0.5f, 0.5f);
                 _drawerRootRT.pivot = new Vector2(0.5f, 0.5f);
-                _drawerRootRT.sizeDelta = new Vector2(width, Screen.height * 0.85f);
+                _drawerRootRT.sizeDelta = new Vector2(Mathf.Max(width, 480f), 560f);
                 _drawerRootRT.anchoredPosition = _floatingPosition;
                 break;
         }
@@ -635,7 +670,7 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
 
     public void OnDrag(PointerEventData eventData)
     {
-        if (_drawerRootRT == null)
+        if (_drawerRootRT == null || _currentDock != DockPosition.Floating)
         {
             return;
         }
@@ -646,11 +681,11 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
 
     public void OnEndDrag(PointerEventData eventData)
     {
-        if (eventData.position.x < 80f)
+        if (eventData.position.x < 60f)
         {
             ApplyDockPosition(DockPosition.Left);
         }
-        else if (eventData.position.x > Screen.width - 80f)
+        else if (eventData.position.x > Screen.width - 60f)
         {
             ApplyDockPosition(DockPosition.Right);
         }

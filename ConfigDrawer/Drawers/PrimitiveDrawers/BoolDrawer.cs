@@ -28,7 +28,7 @@ public static class BoolDrawer
         });
 
         var currentVal = entry.ConfigEntry.BoxedValue is bool val && val;
-        var btnText = currentVal ? "[ ON ]" : "[ OFF ]";
+        var btnText = currentVal ? "ON" : "OFF";
         var borderColor = currentVal ? CyberPalette.ColorGlacialMint : CyberPalette.ColorBorderSubtle;
         var textColor = currentVal ? CyberPalette.ColorGlacialMint : CyberPalette.ColorTextMuted;
 
@@ -40,7 +40,7 @@ public static class BoolDrawer
             {
                 UpdateDisplay(btnObj, next);
             }
-        }, borderColor, textColor, 60f, 22f);
+        }, borderColor, textColor, 44f, 22f);
 
         btnObj.transform.SetAsFirstSibling();
 
@@ -53,7 +53,7 @@ public static class BoolDrawer
         var img = btnObj.GetComponent<Image>();
         if (tmp != null)
         {
-            tmp.text = state ? "[ ON ]" : "[ OFF ]";
+            tmp.text = state ? "ON" : "OFF";
             tmp.color = state ? CyberPalette.ColorGlacialMint : CyberPalette.ColorTextMuted;
         }
 
