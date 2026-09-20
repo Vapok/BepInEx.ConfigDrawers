@@ -1,4 +1,6 @@
 using System;
+using System.Collections;
+using System.Reflection;
 using BepInEx.ConfigDrawers.Components;
 using BepInEx.ConfigDrawers.Models;
 using BepInEx.ConfigDrawers.UI;
@@ -9,13 +11,18 @@ using UnityEngine.UI;
 
 namespace BepInEx.ConfigDrawers.Drawers.LegacyBridge;
 
-public class LegacyImguiBridge : MonoBehaviour
+public class LegacyImguiBridge : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler
 {
     private SettingEntry? _entry;
     private LayoutElement? _layoutElement;
     private float _currentHeight;
-    private string? _lastBoxedValue;
     private float _lastScale = 1f;
+
+    private static readonly PropertyInfo? _topLevelProp = typeof(GUILayoutUtility).GetProperty("topLevel", BindingFlags.NonPublic | BindingFlags.Static);
+    private static readonly Type? _groupType = typeof(GUILayoutUtility).Assembly.GetType("UnityEngine.GUILayoutGroup");
+    private static readonly Type? _entryType = typeof(GUILayoutUtility).Assembly.GetType("UnityEngine.GUILayoutEntry");
+    private static readonly FieldInfo? _entriesField = _groupType?.GetField("entries", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+    private static readonly FieldInfo? _rectField = _entryType?.GetField("rect", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
 
     private static Texture2D? _texInput;
     private static Texture2D? _texInputFocused;
@@ -25,6 +32,10 @@ public class LegacyImguiBridge : MonoBehaviour
     private static Texture2D? _texSliderTrack;
     private static Texture2D? _texSliderThumb;
     private static Texture2D? _texSliderThumbHover;
+
+    public void OnBeginDrag(PointerEventData eventData) { }
+    public void OnDrag(PointerEventData eventData) { }
+    public void OnEndDrag(PointerEventData eventData) { }
 
     private static Texture2D MakeBorderedTex(int w, int h, Color fill, Color border)
     {
@@ -61,27 +72,46 @@ public class LegacyImguiBridge : MonoBehaviour
         return tex;
     }
 
-    public static float CalculateHeight(SettingEntry? entry, string rawVal)
+    private static float GetMaxContentY(object? entryObj)
     {
-        if (entry == null)
+        if (entryObj == null)
         {
-            return 40f;
+            return 0f;
         }
 
-        var items = rawVal.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
-        var count = Mathf.Max(items.Length, 1);
+        var maxY = 0f;
 
-        if (entry.Key.IndexOf("Drop", StringComparison.OrdinalIgnoreCase) >= 0)
+        if (_entriesField != null && _groupType != null && _groupType.IsInstanceOfType(entryObj))
         {
-            return count * 90.5f + 10f;
+            if (_entriesField.GetValue(entryObj) is IList list && list.Count > 0)
+            {
+                for (var i = 0; i < list.Count; i++)
+                {
+                    var child = list[i];
+                    var childMax = GetMaxContentY(child);
+                    if (childMax > maxY)
+                    {
+                        maxY = childMax;
+                    }
+                }
+                return maxY;
+            }
         }
 
-        if (entry.Key.IndexOf("Upgrade", StringComparison.OrdinalIgnoreCase) >= 0 || entry.Key.IndexOf("Quality", StringComparison.OrdinalIgnoreCase) >= 0)
+        if (_rectField != null)
         {
-            return count * 23f + 26f;
+            var rect = (Rect)_rectField.GetValue(entryObj);
+            if (rect.height > 0f)
+            {
+                var bottom = rect.y + rect.height;
+                if (bottom > maxY)
+                {
+                    maxY = bottom;
+                }
+            }
         }
 
-        return count * 23f + 8f;
+        return maxY;
     }
 
     private float GetCanvasScale()
@@ -137,11 +167,8 @@ public class LegacyImguiBridge : MonoBehaviour
     {
         _entry = entry ?? throw new ArgumentNullException(nameof(entry));
         _layoutElement = layoutElement;
-        var rawVal = entry.ConfigEntry?.BoxedValue?.ToString() ?? string.Empty;
-        _lastBoxedValue = rawVal;
         _lastScale = GetCanvasScale();
-        var screenH = CalculateHeight(entry, rawVal);
-        ApplyHeight(screenH);
+        ApplyHeight(60f);
     }
 
     public static GameObject Draw(Transform parent, SettingEntry entry)
@@ -239,14 +266,14 @@ public class LegacyImguiBridge : MonoBehaviour
             return;
         }
 
-        var currentVal = _entry.ConfigEntry.BoxedValue?.ToString() ?? string.Empty;
         var currentScale = GetCanvasScale();
-        if (_lastBoxedValue == null || currentVal != _lastBoxedValue || Mathf.Abs(_lastScale - currentScale) > 0.01f)
+        if (Mathf.Abs(_lastScale - currentScale) > 0.01f)
         {
-            _lastBoxedValue = currentVal;
             _lastScale = currentScale;
-            var targetHeight = CalculateHeight(_entry, currentVal);
-            ApplyHeight(targetHeight);
+            if (_currentHeight > 10f)
+            {
+                ApplyHeight(_currentHeight);
+            }
         }
     }
 
@@ -331,7 +358,7 @@ public class LegacyImguiBridge : MonoBehaviour
 
         _texInput ??= MakeBorderedTex(6, 6, CyberPalette.ColorInputWell, CyberPalette.ColorInputGroove);
         _texInputFocused ??= MakeBorderedTex(6, 6, CyberPalette.ColorInputWell, CyberPalette.ColorIceBlueBright);
-        _texButton ??= MakeBorderedTex(6, 6, CyberPalette.ColorCardSurface, CyberPalette.ColorBorderSubtle);
+        _texButton ??= MakeBorderedTex(6, 6, CyberPalette.ColorVoidBlack, CyberPalette.ColorBorderSubtle);
         _texButtonHover ??= MakeBorderedTex(6, 6, new Color(0.08f, 0.15f, 0.22f, 1f), CyberPalette.ColorIceBlueBright);
         _texButtonActive ??= MakeBorderedTex(6, 6, new Color(0.02f, 0.25f, 0.25f, 1f), CyberPalette.ColorGlacialMint);
         _texSliderTrack ??= MakeBorderedTex(6, 6, new Color(0.08f, 0.14f, 0.20f, 1f), CyberPalette.ColorBorderSubtle);
@@ -419,12 +446,12 @@ public class LegacyImguiBridge : MonoBehaviour
 
         GUI.skin.horizontalSlider.normal.background = _texSliderTrack;
         GUI.skin.horizontalSlider.stretchWidth = false;
-        GUI.skin.horizontalSlider.fixedHeight = 8;
-        GUI.skin.horizontalSlider.margin = new RectOffset(2, 2, 6, 6);
+        GUI.skin.horizontalSlider.fixedHeight = 10;
+        GUI.skin.horizontalSlider.margin = new RectOffset(2, 2, 5, 5);
         GUI.skin.horizontalSliderThumb.normal.background = _texSliderThumb;
         GUI.skin.horizontalSliderThumb.hover.background = _texSliderThumbHover;
-        GUI.skin.horizontalSliderThumb.fixedWidth = 12;
-        GUI.skin.horizontalSliderThumb.fixedHeight = 16;
+        GUI.skin.horizontalSliderThumb.fixedWidth = 14;
+        GUI.skin.horizontalSliderThumb.fixedHeight = 14;
 
         GUI.BeginGroup(new Rect(screenX + 8f, visibleY + 2f, areaW, visibleH - 4f));
         GUILayout.BeginArea(new Rect(0f, screenY - visibleY, areaW, areaH + 10f));
@@ -432,6 +459,20 @@ public class LegacyImguiBridge : MonoBehaviour
         try
         {
             entry.CustomDrawer(entry.ConfigEntry);
+
+            if (Event.current.type == EventType.Repaint)
+            {
+                var topLevel = _topLevelProp?.GetValue(null, null);
+                var measured = GetMaxContentY(topLevel);
+                if (measured > 10f)
+                {
+                    var targetH = measured + 8f;
+                    if (Mathf.Abs(_currentHeight - targetH) > 2f)
+                    {
+                        ApplyHeight(targetH);
+                    }
+                }
+            }
         }
         catch (Exception ex)
         {
