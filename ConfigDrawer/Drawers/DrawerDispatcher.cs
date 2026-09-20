@@ -72,8 +72,8 @@ public static class DrawerDispatcher
     {
         var row = UiFactory.CreatePanel(parent, $"Row_{entry.Key}", CyberPalette.ColorBorderCard, CyberPalette.ColorCardSurface, 1f);
         var layout = row.AddComponent<LayoutElement>();
-        layout.minHeight = 32f;
-        layout.preferredHeight = 32f;
+        layout.minHeight = 30f;
+        layout.preferredHeight = 30f;
         layout.flexibleHeight = 0f;
         layout.flexibleWidth = 1f;
 
@@ -92,38 +92,48 @@ public static class DrawerDispatcher
         leftArea.transform.SetParent(target, false);
         var leftRT = leftArea.GetComponent<RectTransform>();
         leftRT.anchorMin = new Vector2(0f, 0f);
-        leftRT.anchorMax = new Vector2(0.56f, 1f);
-        leftRT.offsetMin = new Vector2(8f, 0f);
+        leftRT.anchorMax = new Vector2(0.66f, 1f);
+        leftRT.offsetMin = new Vector2(6f, 0f);
         leftRT.offsetMax = Vector2.zero;
 
         var leftHlg = leftArea.GetComponent<HorizontalLayoutGroup>();
         leftHlg.spacing = 4f;
         leftHlg.childAlignment = TextAnchor.MiddleLeft;
-        leftHlg.childControlWidth = false;
-        leftHlg.childControlHeight = false;
+        leftHlg.childControlWidth = true;
+        leftHlg.childControlHeight = true;
+        leftHlg.childForceExpandWidth = false;
+        leftHlg.childForceExpandHeight = false;
 
         if (entry.IsAdminOnly || !entry.IsUnlocked)
         {
-            var lockLabel = UiFactory.CreateLabel(leftArea.transform, "LockBadge", "[🔒]", CyberPalette.ColorWarningAmber, 10f);
+            var lockLabel = UiFactory.CreateLabel(leftArea.transform, "LockBadge", "[🔒]", CyberPalette.ColorWarningAmber, 9.5f);
             var lockLayout = lockLabel.gameObject.AddComponent<LayoutElement>();
             lockLayout.minWidth = 18f;
             lockLayout.preferredWidth = 18f;
+            lockLayout.flexibleWidth = 0f;
+            lockLayout.minHeight = 18f;
+            lockLayout.preferredHeight = 18f;
+            lockLayout.flexibleHeight = 0f;
         }
 
-        var label = UiFactory.CreateLabel(leftArea.transform, "Label", entry.DispName, entry.EntryColor, 11f);
+        var label = UiFactory.CreateLabel(leftArea.transform, "Label", entry.DispName, entry.EntryColor, 10.5f);
         var labelLayout = label.gameObject.AddComponent<LayoutElement>();
+        labelLayout.minWidth = 80f;
         labelLayout.flexibleWidth = 1f;
+        labelLayout.minHeight = 18f;
+        labelLayout.preferredHeight = 18f;
+        labelLayout.flexibleHeight = 0f;
 
         var rightArea = new GameObject("RightArea", typeof(RectTransform), typeof(HorizontalLayoutGroup));
         rightArea.transform.SetParent(target, false);
         var rightRT = rightArea.GetComponent<RectTransform>();
-        rightRT.anchorMin = new Vector2(0.56f, 0f);
+        rightRT.anchorMin = new Vector2(0.66f, 0f);
         rightRT.anchorMax = new Vector2(1f, 1f);
         rightRT.offsetMin = Vector2.zero;
-        rightRT.offsetMax = new Vector2(-6f, 0f);
+        rightRT.offsetMax = new Vector2(-4f, 0f);
 
         var rightHlg = rightArea.GetComponent<HorizontalLayoutGroup>();
-        rightHlg.spacing = 4f;
+        rightHlg.spacing = 3f;
         rightHlg.childAlignment = TextAnchor.MiddleRight;
         rightHlg.childControlWidth = false;
         rightHlg.childControlHeight = false;
@@ -132,11 +142,11 @@ public static class DrawerDispatcher
 
         if (!entry.HideDefaultButton && entry.DefaultValue != null)
         {
-            UiFactory.CreateCyberButton(rightArea.transform, "ResetBtn", "[ ↺ ]", () =>
+            UiFactory.CreateCyberButton(rightArea.transform, "ResetBtn", "[ R ]", () =>
             {
                 entry.ResetToDefault();
                 onReset?.Invoke();
-            }, CyberPalette.ColorBorderSubtle, CyberPalette.ColorWarningAmber, 24f, 22f);
+            }, CyberPalette.ColorBorderSubtle, CyberPalette.ColorWarningAmber, 22f, 20f);
         }
 
         return row;

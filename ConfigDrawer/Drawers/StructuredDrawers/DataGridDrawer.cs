@@ -34,17 +34,17 @@ public static class DataGridDrawer
             throw new ArgumentNullException(entry == null ? nameof(entry) : nameof(parent));
         }
 
-        var container = UiFactory.CreatePanel(parent, $"Grid_{entry.Key}", CyberPalette.ColorBorderCard, CyberPalette.ColorCardSurface, 1f);
+        var container = UiFactory.CreatePanel(parent, $"Grid_{entry.Key}", CyberPalette.ColorBorderCard, CyberPalette.ColorVoidBlack, 1f);
         var layout = container.AddComponent<VerticalLayoutGroup>();
-        layout.spacing = 4f;
-        layout.padding = new RectOffset(8, 8, 6, 6);
+        layout.spacing = 3f;
+        layout.padding = new RectOffset(6, 6, 6, 6);
         layout.childControlWidth = true;
-        layout.childControlHeight = false;
+        layout.childControlHeight = true;
+        layout.childForceExpandWidth = true;
+        layout.childForceExpandHeight = false;
 
         var csf = container.AddComponent<ContentSizeFitter>();
         csf.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
-
-        var headerRow = UiFactory.CreateLabel(container.transform, "Header", $"{entry.DispName} [ DATA GRID ]", CyberPalette.ColorIceBlueBright, 11f);
 
         var raw = entry.ConfigEntry?.BoxedValue as string ?? string.Empty;
         var rows = raw.Split(new[] { ',', '\n' }, StringSplitOptions.RemoveEmptyEntries)
@@ -52,23 +52,34 @@ public static class DataGridDrawer
                       .Where(r => !string.IsNullOrEmpty(r))
                       .ToList();
 
+        var headerRow = UiFactory.CreateLabel(container.transform, "Header", $"// {entry.DispName} [ DATA GRID: {rows.Count} ITEMS ] //", CyberPalette.ColorIceBlueBright, 10.5f);
+        var headerLayout = headerRow.gameObject.AddComponent<LayoutElement>();
+        headerLayout.minHeight = 20f;
+        headerLayout.preferredHeight = 20f;
+        headerLayout.flexibleHeight = 0f;
+
         for (int i = 0; i < rows.Count; i++)
         {
             var rowIndex = i;
-            RenderDataRow(container.transform, rows, rowIndex, entry);
+            RenderDataRow(container.transform, rows, rowIndex, entry, () =>
+            {
+                // Refresh parent
+                entry.SetValue(string.Join(",", rows));
+            });
         }
 
-        UiFactory.CreateCyberButton(container.transform, "AddRowBtn", "[ + ADD ROW ]", () =>
+        var addBtn = UiFactory.CreateCyberButton(container.transform, "AddRowBtn", "[ + ADD ENTRY ]", () =>
         {
             rows.Add("Item:1");
             entry.SetValue(string.Join(",", rows));
-            // Re-render
-        }, CyberPalette.ColorGlacialMint, CyberPalette.ColorGlacialMint, 120f, 22f);
+        }, CyberPalette.ColorGlacialMint, CyberPalette.ColorGlacialMint, -1f, 22f);
+        var addLayout = addBtn.GetComponent<LayoutElement>();
+        addLayout.flexibleWidth = 1f;
 
         return container;
     }
 
-    private static void RenderDataRow(Transform parent, List<string> rows, int index, SettingEntry entry)
+    private static void RenderDataRow(Transform parent, List<string> rows, int index, SettingEntry entry, Action onModified)
     {
         var rowStr = rows[index];
         var parts = rowStr.Split(':');
@@ -79,20 +90,25 @@ public static class DataGridDrawer
         rowObj.transform.SetParent(parent, false);
 
         var hlg = rowObj.GetComponent<HorizontalLayoutGroup>();
-        hlg.spacing = 6f;
+        hlg.spacing = 4f;
+        hlg.childAlignment = TextAnchor.MiddleLeft;
         hlg.childControlWidth = false;
-        hlg.childControlHeight = false;
+        hlg.childControlHeight = true;
+        hlg.childForceExpandWidth = false;
+        hlg.childForceExpandHeight = false;
 
         var le = rowObj.AddComponent<LayoutElement>();
-        le.minHeight = 24f;
-        le.preferredHeight = 24f;
+        le.minHeight = 22f;
+        le.preferredHeight = 22f;
+        le.flexibleHeight = 0f;
+        le.flexibleWidth = 1f;
 
         UiFactory.CreateInputField(rowObj.transform, "ColName", namePart, newName =>
         {
             parts[0] = newName;
             rows[index] = string.Join(":", parts);
-            entry.SetValue(string.Join(",", rows));
-        }, 180f, 24f);
+            onModified?.Invoke();
+        }, 150f, 22f);
 
         UiFactory.CreateInputField(rowObj.transform, "ColAmount", amountPart, newAmount =>
         {
@@ -101,13 +117,13 @@ public static class DataGridDrawer
                 parts[1] = newAmount;
             }
             rows[index] = string.Join(":", parts);
-            entry.SetValue(string.Join(",", rows));
-        }, 60f, 24f);
+            onModified?.Invoke();
+        }, 50f, 22f);
 
         UiFactory.CreateCyberButton(rowObj.transform, "DeleteBtn", "[ X ]", () =>
         {
             rows.RemoveAt(index);
-            entry.SetValue(string.Join(",", rows));
-        }, CyberPalette.ColorErrorRed, CyberPalette.ColorErrorRed, 30f, 22f);
+            onModified?.Invoke();
+        }, CyberPalette.ColorErrorRed, CyberPalette.ColorErrorRed, 24f, 20f);
     }
 }

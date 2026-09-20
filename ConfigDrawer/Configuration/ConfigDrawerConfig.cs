@@ -10,6 +10,7 @@ public static class ConfigDrawerConfig
     public static ConfigEntry<DockPosition> DefaultDockPosition { get; private set; } = null!;
     public static ConfigEntry<float> DrawerWidth { get; private set; } = null!;
     public static ConfigEntry<float> UiScale { get; private set; } = null!;
+    public static ConfigEntry<FontSizeScale> UiFontSize { get; private set; } = null!;
     public static ConfigEntry<float> TranslucencyOpacity { get; private set; } = null!;
     public static ConfigEntry<bool> HideAdvancedByDefault { get; private set; } = null!;
     public static ConfigEntry<bool> AutoSuppressLegacy { get; private set; } = null!;
@@ -47,6 +48,13 @@ public static class ConfigDrawerConfig
             "UI Scale",
             1.0f,
             new ConfigDescription("UI scale factor.", new AcceptableValueRange<float>(0.75f, 1.75f))
+        );
+
+        UiFontSize = config.Bind(
+            "Interface",
+            "Font Size",
+            FontSizeScale.Normal,
+            "Font size scale: Small, Normal, Large."
         );
 
         TranslucencyOpacity = config.Bind(

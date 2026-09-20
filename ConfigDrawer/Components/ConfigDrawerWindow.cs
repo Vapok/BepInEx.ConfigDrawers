@@ -20,20 +20,21 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
     public static ConfigDrawerWindow? Instance { get; private set; }
 
     public bool IsVisible { get; private set; }
-
     public float SettingsColumnWidth => 280f;
+
     private Canvas? _canvas;
     private CanvasScaler? _canvasScaler;
     private RectTransform? _drawerRootRT;
     private Transform? _contentContainer;
     private TMP_InputField? _searchField;
     private TextMeshProUGUI? _rebindButtonText;
+    private TextMeshProUGUI? _fontSizeButtonText;
 
     private DockPosition _currentDock = DockPosition.Left;
-    private Vector2 _floatingPosition = new Vector2(0f, 0f);
+    private Vector2 _floatingPosition = Vector2.zero;
     private bool _isRecordingKeybind;
     private PluginSettingsGroup? _activePlugin;
-    private readonly HashSet<string> _collapsedCategories = new();
+    private readonly HashSet<string> _expandedCategories = new();
 
     private void Awake()
     {
@@ -93,7 +94,7 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
         headerRT.anchorMax = new Vector2(1f, 1f);
         headerRT.pivot = new Vector2(0.5f, 1f);
         headerRT.anchoredPosition = new Vector2(0f, -4f);
-        headerRT.sizeDelta = new Vector2(-12f, 38f);
+        headerRT.sizeDelta = new Vector2(-10f, 36f);
 
         var fill = headerObj.transform.Find("Fill");
         var target = fill != null ? fill : headerObj.transform;
@@ -102,11 +103,11 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
         titleArea.transform.SetParent(target, false);
         var titleRT = titleArea.GetComponent<RectTransform>();
         titleRT.anchorMin = new Vector2(0f, 0f);
-        titleRT.anchorMax = new Vector2(0.42f, 1f);
-        titleRT.offsetMin = new Vector2(8f, 0f);
+        titleRT.anchorMax = new Vector2(0.35f, 1f);
+        titleRT.offsetMin = new Vector2(6f, 0f);
         titleRT.offsetMax = Vector2.zero;
 
-        var title = UiFactory.CreateLabel(titleArea.transform, "Title", "<b>// CONFIG DRAWERS //</b>", CyberPalette.ColorIceBlueBright, 12f, TextAlignmentOptions.Left);
+        var title = UiFactory.CreateLabel(titleArea.transform, "Title", "<b>// CONFIG //</b>", CyberPalette.ColorIceBlueBright, 11.5f, TextAlignmentOptions.Left);
         var labelRT = title.GetComponent<RectTransform>();
         labelRT.anchorMin = Vector2.zero;
         labelRT.anchorMax = Vector2.one;
@@ -116,26 +117,58 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
         var controlsRow = new GameObject("Controls", typeof(RectTransform), typeof(HorizontalLayoutGroup));
         controlsRow.transform.SetParent(target, false);
         var controlsRT = controlsRow.GetComponent<RectTransform>();
-        controlsRT.anchorMin = new Vector2(0.42f, 0f);
+        controlsRT.anchorMin = new Vector2(0.35f, 0f);
         controlsRT.anchorMax = new Vector2(1f, 1f);
         controlsRT.offsetMin = Vector2.zero;
-        controlsRT.offsetMax = new Vector2(-6f, 0f);
+        controlsRT.offsetMax = new Vector2(-4f, 0f);
 
         var hlg = controlsRow.GetComponent<HorizontalLayoutGroup>();
-        hlg.spacing = 5f;
+        hlg.spacing = 3f;
         hlg.childAlignment = TextAnchor.MiddleRight;
         hlg.childControlWidth = true;
         hlg.childControlHeight = true;
         hlg.childForceExpandWidth = false;
         hlg.childForceExpandHeight = false;
 
-        var rebindBtn = UiFactory.CreateCyberButton(controlsRow.transform, "RebindBtn", $"[ {ConfigDrawerConfig.ToggleKeybind.Value.MainKey} ]", OnStartRebindClicked, CyberPalette.ColorIceBlue, CyberPalette.ColorIceBlueBright, 65f, 24f);
+        var rebindBtn = UiFactory.CreateCyberButton(controlsRow.transform, "RebindBtn", $"[ {ConfigDrawerConfig.ToggleKeybind.Value.MainKey} ]", OnStartRebindClicked, CyberPalette.ColorIceBlue, CyberPalette.ColorIceBlueBright, 54f, 22f);
         _rebindButtonText = rebindBtn.GetComponentInChildren<TextMeshProUGUI>();
 
-        UiFactory.CreateCyberButton(controlsRow.transform, "DockLeftBtn", "[ ◧ ]", () => ApplyDockPosition(DockPosition.Left), CyberPalette.ColorBorderSubtle, CyberPalette.ColorTextMain, 26f, 24f);
-        UiFactory.CreateCyberButton(controlsRow.transform, "DockRightBtn", "[ ◨ ]", () => ApplyDockPosition(DockPosition.Right), CyberPalette.ColorBorderSubtle, CyberPalette.ColorTextMain, 26f, 24f);
-        UiFactory.CreateCyberButton(controlsRow.transform, "DetachBtn", "[ ⧉ ]", () => ApplyDockPosition(DockPosition.Floating), CyberPalette.ColorBorderSubtle, CyberPalette.ColorTextMain, 26f, 24f);
-        UiFactory.CreateCyberButton(controlsRow.transform, "CloseBtn", "[ ✕ ]", () => SetVisible(false), CyberPalette.ColorWarningAmber, CyberPalette.ColorTextMain, 26f, 24f);
+        var fontBtn = UiFactory.CreateCyberButton(controlsRow.transform, "FontBtn", GetFontSizeLabel(), OnCycleFontSize, CyberPalette.ColorBorderSubtle, CyberPalette.ColorIceBlue, 60f, 22f);
+        _fontSizeButtonText = fontBtn.GetComponentInChildren<TextMeshProUGUI>();
+
+        UiFactory.CreateCyberButton(controlsRow.transform, "DockLeftBtn", "[ L ]", () => ApplyDockPosition(DockPosition.Left), CyberPalette.ColorBorderSubtle, CyberPalette.ColorTextMain, 26f, 22f);
+        UiFactory.CreateCyberButton(controlsRow.transform, "DockRightBtn", "[ R ]", () => ApplyDockPosition(DockPosition.Right), CyberPalette.ColorBorderSubtle, CyberPalette.ColorTextMain, 26f, 22f);
+        UiFactory.CreateCyberButton(controlsRow.transform, "DetachBtn", "[ POP ]", () => ApplyDockPosition(DockPosition.Floating), CyberPalette.ColorBorderSubtle, CyberPalette.ColorTextMain, 34f, 22f);
+        UiFactory.CreateCyberButton(controlsRow.transform, "CloseBtn", "[ X ]", () => SetVisible(false), CyberPalette.ColorWarningAmber, CyberPalette.ColorTextMain, 26f, 22f);
+    }
+
+    private string GetFontSizeLabel()
+    {
+        return ConfigDrawerConfig.UiFontSize.Value switch
+        {
+            FontSizeScale.Small => "[ F:SML ]",
+            FontSizeScale.Large => "[ F:LRG ]",
+            _ => "[ F:NORM ]"
+        };
+    }
+
+    private void OnCycleFontSize()
+    {
+        var next = (FontSizeScale)(((int)ConfigDrawerConfig.UiFontSize.Value + 1) % 3);
+        ConfigDrawerConfig.UiFontSize.Value = next;
+        if (_fontSizeButtonText != null)
+        {
+            _fontSizeButtonText.text = GetFontSizeLabel();
+        }
+
+        if (_activePlugin != null)
+        {
+            ShowPluginSettings(_activePlugin);
+        }
+        else
+        {
+            PopulatePlugins();
+        }
     }
 
     private void BuildSearchBar(Transform parent)
@@ -146,10 +179,10 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
         searchRT.anchorMin = new Vector2(0f, 1f);
         searchRT.anchorMax = new Vector2(1f, 1f);
         searchRT.pivot = new Vector2(0.5f, 1f);
-        searchRT.anchoredPosition = new Vector2(0f, -44f);
-        searchRT.sizeDelta = new Vector2(-12f, 28f);
+        searchRT.anchoredPosition = new Vector2(0f, -42f);
+        searchRT.sizeDelta = new Vector2(-10f, 26f);
 
-        var (_, input) = UiFactory.CreateInputField(searchContainer.transform, "SearchInput", "", OnSearchChanged, -1f, 28f, "SEARCH MODS OR SETTINGS...");
+        var (_, input) = UiFactory.CreateInputField(searchContainer.transform, "SearchInput", "", OnSearchChanged, -1f, 26f, "SEARCH MODS OR SETTINGS...");
         _searchField = input;
         input.onValueChanged.AddListener(OnSearchChanged);
 
@@ -167,8 +200,8 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
         var contentRT = contentArea.GetComponent<RectTransform>();
         contentRT.anchorMin = Vector2.zero;
         contentRT.anchorMax = Vector2.one;
-        contentRT.offsetMin = new Vector2(6f, 6f);
-        contentRT.offsetMax = new Vector2(-6f, -76f);
+        contentRT.offsetMin = new Vector2(5f, 5f);
+        contentRT.offsetMax = new Vector2(-5f, -72f);
 
         _contentContainer = contentArea.transform;
     }
@@ -232,13 +265,13 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
         var query = _searchField?.text ?? string.Empty;
         var plugins = ConfigRegistry.Instance.SearchPlugins(query, !ConfigDrawerConfig.HideAdvancedByDefault.Value).ToList();
 
-        var headerRow = UiFactory.CreateLabel(_contentContainer, "ListHeader", $"// LOADED PLUGINS: [ {plugins.Count} ] //", CyberPalette.ColorIceBlueBright, 11f);
+        var headerRow = UiFactory.CreateLabel(_contentContainer, "ListHeader", $"// LOADED PLUGINS: [ {plugins.Count} ] //", CyberPalette.ColorIceBlueBright, 10.5f);
         var headerRT = headerRow.GetComponent<RectTransform>();
         headerRT.anchorMin = new Vector2(0f, 1f);
         headerRT.anchorMax = new Vector2(1f, 1f);
         headerRT.pivot = new Vector2(0.5f, 1f);
         headerRT.anchoredPosition = Vector2.zero;
-        headerRT.sizeDelta = new Vector2(0f, 22f);
+        headerRT.sizeDelta = new Vector2(0f, 20f);
 
         var scrollObj = new GameObject("ScrollArea", typeof(RectTransform), typeof(ScrollRect));
         scrollObj.transform.SetParent(_contentContainer, false);
@@ -246,7 +279,7 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
         scrollRT.anchorMin = Vector2.zero;
         scrollRT.anchorMax = Vector2.one;
         scrollRT.offsetMin = Vector2.zero;
-        scrollRT.offsetMax = new Vector2(0f, -24f);
+        scrollRT.offsetMax = new Vector2(0f, -22f);
 
         var viewport = new GameObject("Viewport", typeof(RectTransform), typeof(RectMask2D));
         viewport.transform.SetParent(scrollObj.transform, false);
@@ -266,7 +299,7 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
         listRT.offsetMax = Vector2.zero;
 
         var vlg = listContainer.GetComponent<VerticalLayoutGroup>();
-        vlg.spacing = 4f;
+        vlg.spacing = 3f;
         vlg.childControlWidth = true;
         vlg.childControlHeight = true;
         vlg.childForceExpandWidth = true;
@@ -291,8 +324,8 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
     {
         var card = UiFactory.CreatePanel(parent, $"Plugin_{plugin.ModGuid}", CyberPalette.ColorBorderCard, CyberPalette.ColorCardSurface, 1f);
         var layout = card.AddComponent<LayoutElement>();
-        layout.minHeight = 40f;
-        layout.preferredHeight = 40f;
+        layout.minHeight = 36f;
+        layout.preferredHeight = 36f;
         layout.flexibleHeight = 0f;
         layout.flexibleWidth = 1f;
 
@@ -305,24 +338,28 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
         hover.Init(borderImg, CyberPalette.ColorBorderCard, CyberPalette.ColorIceBlueBright, fillImg, CyberPalette.ColorCardSurface, new Color(0.07f, 0.12f, 0.18f));
 
         var btn = card.AddComponent<Button>();
-        btn.onClick.AddListener(() => ShowPluginSettings(plugin));
+        btn.onClick.AddListener(() =>
+        {
+            _expandedCategories.Clear();
+            ShowPluginSettings(plugin);
+        });
 
         var leftArea = new GameObject("LeftArea", typeof(RectTransform));
         leftArea.transform.SetParent(target, false);
         var leftRT = leftArea.GetComponent<RectTransform>();
         leftRT.anchorMin = new Vector2(0f, 0f);
         leftRT.anchorMax = new Vector2(0.72f, 1f);
-        leftRT.offsetMin = new Vector2(10f, 0f);
+        leftRT.offsetMin = new Vector2(8f, 0f);
         leftRT.offsetMax = Vector2.zero;
 
-        var titleLabel = UiFactory.CreateLabel(leftArea.transform, "Title", $"<b>{plugin.ModName}</b>", CyberPalette.ColorTextMain, 12f);
+        var titleLabel = UiFactory.CreateLabel(leftArea.transform, "Title", $"<b>{plugin.ModName}</b>", CyberPalette.ColorTextMain, 11f);
         var titleRT = titleLabel.GetComponent<RectTransform>();
         titleRT.anchorMin = new Vector2(0f, 0.45f);
         titleRT.anchorMax = new Vector2(1f, 1f);
         titleRT.offsetMin = Vector2.zero;
         titleRT.offsetMax = Vector2.zero;
 
-        var subtitle = UiFactory.CreateLabel(leftArea.transform, "Subtitle", $"<color=#{ColorUtility.ToHtmlStringRGB(CyberPalette.ColorCyberTeal)}>v{plugin.Version}</color>  <color=#{ColorUtility.ToHtmlStringRGB(CyberPalette.ColorTextMuted)}>{plugin.ModGuid}</color>", CyberPalette.ColorTextMuted, 9.5f);
+        var subtitle = UiFactory.CreateLabel(leftArea.transform, "Subtitle", $"<color=#{ColorUtility.ToHtmlStringRGB(CyberPalette.ColorCyberTeal)}>v{plugin.Version}</color>  <color=#{ColorUtility.ToHtmlStringRGB(CyberPalette.ColorTextMuted)}>{plugin.ModGuid}</color>", CyberPalette.ColorTextMuted, 9f);
         var subRT = subtitle.GetComponent<RectTransform>();
         subRT.anchorMin = new Vector2(0f, 0f);
         subRT.anchorMax = new Vector2(1f, 0.45f);
@@ -335,9 +372,9 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
         rightRT.anchorMin = new Vector2(0.72f, 0f);
         rightRT.anchorMax = new Vector2(1f, 1f);
         rightRT.offsetMin = Vector2.zero;
-        rightRT.offsetMax = new Vector2(-10f, 0f);
+        rightRT.offsetMax = new Vector2(-8f, 0f);
 
-        var badgeLabel = UiFactory.CreateLabel(rightArea.transform, "Badge", $"<color=#{ColorUtility.ToHtmlStringRGB(CyberPalette.ColorIceBlueBright)}>[ {plugin.AllSettings.Count} ]</color>  <color=#{ColorUtility.ToHtmlStringRGB(CyberPalette.ColorCyberTeal)}>></color>", CyberPalette.ColorTextMain, 11f, TextAlignmentOptions.Right);
+        var badgeLabel = UiFactory.CreateLabel(rightArea.transform, "Badge", $"<color=#{ColorUtility.ToHtmlStringRGB(CyberPalette.ColorIceBlueBright)}>[ {plugin.AllSettings.Count} ]</color>  <color=#{ColorUtility.ToHtmlStringRGB(CyberPalette.ColorCyberTeal)}>></color>", CyberPalette.ColorTextMain, 10.5f, TextAlignmentOptions.Right);
         var badgeRT = badgeLabel.GetComponent<RectTransform>();
         badgeRT.anchorMin = Vector2.zero;
         badgeRT.anchorMax = Vector2.one;
@@ -347,6 +384,11 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
 
     private void ShowPluginSettings(PluginSettingsGroup plugin)
     {
+        if (_activePlugin != plugin)
+        {
+            _expandedCategories.Clear();
+        }
+
         _activePlugin = plugin;
         if (_contentContainer == null)
         {
@@ -365,36 +407,36 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
         navRT.anchorMax = new Vector2(1f, 1f);
         navRT.pivot = new Vector2(0.5f, 1f);
         navRT.anchoredPosition = Vector2.zero;
-        navRT.sizeDelta = new Vector2(0f, 28f);
+        navRT.sizeDelta = new Vector2(0f, 26f);
 
         var hlg = navRow.GetComponent<HorizontalLayoutGroup>();
-        hlg.spacing = 6f;
+        hlg.spacing = 4f;
         hlg.childControlWidth = false;
         hlg.childControlHeight = true;
         hlg.childForceExpandWidth = false;
         hlg.childForceExpandHeight = false;
 
-        UiFactory.CreateCyberButton(navRow.transform, "BackBtn", "[ < MODS ]", PopulatePlugins, CyberPalette.ColorIceBlue, CyberPalette.ColorIceBlueBright, 70f, 24f);
+        UiFactory.CreateCyberButton(navRow.transform, "BackBtn", "[ < MODS ]", PopulatePlugins, CyberPalette.ColorIceBlue, CyberPalette.ColorIceBlueBright, 68f, 22f);
 
-        var titleLabel = UiFactory.CreateLabel(navRow.transform, "ModHeader", $"<b>{plugin.ModName}</b> <color=#{ColorUtility.ToHtmlStringRGB(CyberPalette.ColorCyberTeal)}>v{plugin.Version}</color>", CyberPalette.ColorTextMain, 11.5f);
+        var titleLabel = UiFactory.CreateLabel(navRow.transform, "ModHeader", $"<b>{plugin.ModName}</b> <color=#{ColorUtility.ToHtmlStringRGB(CyberPalette.ColorCyberTeal)}>v{plugin.Version}</color>", CyberPalette.ColorTextMain, 11f);
         var titleLayout = titleLabel.gameObject.AddComponent<LayoutElement>();
         titleLayout.flexibleWidth = 1f;
 
-        UiFactory.CreateCyberButton(navRow.transform, "ExpandBtn", "[ EXPAND ]", () =>
-        {
-            _collapsedCategories.Clear();
-            ShowPluginSettings(plugin);
-        }, CyberPalette.ColorBorderSubtle, CyberPalette.ColorTextMuted, 62f, 22f);
-
-        UiFactory.CreateCyberButton(navRow.transform, "CollapseBtn", "[ COLLAPSE ]", () =>
+        UiFactory.CreateCyberButton(navRow.transform, "ExpandBtn", "[ EXP ]", () =>
         {
             var cats = plugin.GetFilteredCategories(_searchField?.text ?? string.Empty, !ConfigDrawerConfig.HideAdvancedByDefault.Value);
             foreach (var c in cats)
             {
-                _collapsedCategories.Add(c.Key);
+                _expandedCategories.Add(c.Key);
             }
             ShowPluginSettings(plugin);
-        }, CyberPalette.ColorBorderSubtle, CyberPalette.ColorTextMuted, 68f, 22f);
+        }, CyberPalette.ColorBorderSubtle, CyberPalette.ColorTextMuted, 46f, 22f);
+
+        UiFactory.CreateCyberButton(navRow.transform, "CollapseBtn", "[ COL ]", () =>
+        {
+            _expandedCategories.Clear();
+            ShowPluginSettings(plugin);
+        }, CyberPalette.ColorBorderSubtle, CyberPalette.ColorTextMuted, 46f, 22f);
 
         var scrollObj = new GameObject("SettingsScroll", typeof(RectTransform), typeof(ScrollRect));
         scrollObj.transform.SetParent(_contentContainer, false);
@@ -402,7 +444,7 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
         scrollRT.anchorMin = Vector2.zero;
         scrollRT.anchorMax = Vector2.one;
         scrollRT.offsetMin = Vector2.zero;
-        scrollRT.offsetMax = new Vector2(0f, -32f);
+        scrollRT.offsetMax = new Vector2(0f, -28f);
 
         var viewport = new GameObject("Viewport", typeof(RectTransform), typeof(RectMask2D));
         viewport.transform.SetParent(scrollObj.transform, false);
@@ -422,7 +464,7 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
         listRT.offsetMax = Vector2.zero;
 
         var vlg = listContainer.GetComponent<VerticalLayoutGroup>();
-        vlg.spacing = 4f;
+        vlg.spacing = 3f;
         vlg.childControlWidth = true;
         vlg.childControlHeight = true;
         vlg.childForceExpandWidth = true;
@@ -443,25 +485,25 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
         foreach (var categoryGroup in categories)
         {
             var catKey = categoryGroup.Key;
-            var isCollapsed = _collapsedCategories.Contains(catKey);
+            var isExpanded = _expandedCategories.Contains(catKey);
 
             var catPanel = UiFactory.CreatePanel(listContainer.transform, $"Cat_{catKey}", CyberPalette.ColorBorderSubtle, CyberPalette.ColorCardSurface, 1f);
             var catLayout = catPanel.AddComponent<LayoutElement>();
-            catLayout.minHeight = 26f;
-            catLayout.preferredHeight = 26f;
+            catLayout.minHeight = 24f;
+            catLayout.preferredHeight = 24f;
             catLayout.flexibleHeight = 0f;
             catLayout.flexibleWidth = 1f;
 
             var catBtn = catPanel.AddComponent<Button>();
             catBtn.onClick.AddListener(() =>
             {
-                if (isCollapsed)
+                if (isExpanded)
                 {
-                    _collapsedCategories.Remove(catKey);
+                    _expandedCategories.Remove(catKey);
                 }
                 else
                 {
-                    _collapsedCategories.Add(catKey);
+                    _expandedCategories.Add(catKey);
                 }
                 ShowPluginSettings(plugin);
             });
@@ -469,15 +511,15 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
             var fill = catPanel.transform.Find("Fill");
             var target = fill != null ? fill : catPanel.transform;
 
-            var arrow = isCollapsed ? "[ ▶ ]" : "[ ▼ ]";
-            var catLabel = UiFactory.CreateLabel(target, "CatTitle", $"{arrow} // {catKey.ToUpperInvariant()} //  <color=#{ColorUtility.ToHtmlStringRGB(CyberPalette.ColorIceBlueBright)}>[ {categoryGroup.Value.Count} ]</color>", CyberPalette.ColorIceBlueBright, 11f);
+            var arrow = isExpanded ? "[ v ]" : "[ > ]";
+            var catLabel = UiFactory.CreateLabel(target, "CatTitle", $"{arrow} // {catKey.ToUpperInvariant()} //  <color=#{ColorUtility.ToHtmlStringRGB(CyberPalette.ColorIceBlueBright)}>[ {categoryGroup.Value.Count} ]</color>", CyberPalette.ColorIceBlueBright, 10.5f);
             var catRT = catLabel.GetComponent<RectTransform>();
             catRT.anchorMin = Vector2.zero;
             catRT.anchorMax = Vector2.one;
-            catRT.offsetMin = new Vector2(8f, 0f);
-            catRT.offsetMax = new Vector2(-8f, 0f);
+            catRT.offsetMin = new Vector2(6f, 0f);
+            catRT.offsetMax = new Vector2(-6f, 0f);
 
-            if (!isCollapsed)
+            if (isExpanded)
             {
                 foreach (var setting in categoryGroup.Value)
                 {
@@ -514,7 +556,7 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
         _isRecordingKeybind = true;
         if (_rebindButtonText != null)
         {
-            _rebindButtonText.text = "[ PRESS KEY ]";
+            _rebindButtonText.text = "[ ... ]";
             _rebindButtonText.color = CyberPalette.ColorWarningAmber;
         }
 

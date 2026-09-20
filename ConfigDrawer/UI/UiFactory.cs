@@ -1,4 +1,5 @@
 using System;
+using BepInEx.ConfigDrawers.Configuration;
 using TMPro;
 using UnityEngine;
 using UnityEngine.Events;
@@ -9,6 +10,21 @@ namespace BepInEx.ConfigDrawers.UI;
 public static class UiFactory
 {
     private static TMP_FontAsset? _cachedFont;
+
+    public static float GetFontScaleFactor()
+    {
+        return ConfigDrawerConfig.UiFontSize?.Value switch
+        {
+            FontSizeScale.Small => 0.85f,
+            FontSizeScale.Large => 1.18f,
+            _ => 1.0f
+        };
+    }
+
+    public static float GetScaledFontSize(float baseSize)
+    {
+        return Mathf.Round(baseSize * GetFontScaleFactor());
+    }
 
     public static TMP_FontAsset? ResolveFont()
     {
@@ -153,14 +169,14 @@ public static class UiFactory
         return outerObj;
     }
 
-    public static GameObject CreateCyberButton(Transform parent, string name, string labelText, Action onClick, Color borderColor, Color textColor, float width = -1f, float height = 26f, bool enableHover = true)
+    public static GameObject CreateCyberButton(Transform parent, string name, string labelText, Action onClick, Color borderColor, Color textColor, float width = -1f, float height = 24f, bool enableHover = true)
     {
         var btnObj = CreatePanel(parent, name, borderColor, CyberPalette.ColorVoidBlack, 1f);
         var btn = btnObj.AddComponent<Button>();
         btn.onClick.AddListener(new UnityAction(onClick));
 
         var rt = btnObj.GetComponent<RectTransform>();
-        var targetWidth = width > 0f ? width : 60f;
+        var targetWidth = width > 0f ? width : 50f;
         rt.sizeDelta = new Vector2(targetWidth, height);
 
         var layout = btnObj.AddComponent<LayoutElement>();
@@ -178,8 +194,8 @@ public static class UiFactory
         var textRT = textObj.GetComponent<RectTransform>();
         textRT.anchorMin = Vector2.zero;
         textRT.anchorMax = Vector2.one;
-        textRT.offsetMin = new Vector2(4f, 0f);
-        textRT.offsetMax = new Vector2(-4f, 0f);
+        textRT.offsetMin = new Vector2(2f, 0f);
+        textRT.offsetMax = new Vector2(-2f, 0f);
 
         var tmp = textObj.GetComponent<TextMeshProUGUI>();
         var font = ResolveFont();
@@ -189,10 +205,10 @@ public static class UiFactory
         }
 
         tmp.text = labelText;
-        tmp.fontSize = 11f;
+        tmp.fontSize = GetScaledFontSize(10.5f);
         tmp.color = textColor;
         tmp.alignment = TextAlignmentOptions.Center;
-        tmp.overflowMode = TextOverflowModes.Ellipsis;
+        tmp.overflowMode = TextOverflowModes.Overflow;
 
         if (enableHover)
         {
@@ -205,7 +221,7 @@ public static class UiFactory
         return btnObj;
     }
 
-    public static TextMeshProUGUI CreateLabel(Transform parent, string name, string text, Color color, float fontSize = 12f, TextAlignmentOptions alignment = TextAlignmentOptions.Left)
+    public static TextMeshProUGUI CreateLabel(Transform parent, string name, string text, Color color, float fontSize = 11f, TextAlignmentOptions alignment = TextAlignmentOptions.Left)
     {
         var labelObj = new GameObject(name, typeof(RectTransform), typeof(TextMeshProUGUI));
         labelObj.transform.SetParent(parent, false);
@@ -218,7 +234,7 @@ public static class UiFactory
         }
 
         tmp.text = text;
-        tmp.fontSize = fontSize;
+        tmp.fontSize = GetScaledFontSize(fontSize);
         tmp.color = color;
         tmp.alignment = alignment;
         tmp.overflowMode = TextOverflowModes.Ellipsis;
@@ -226,7 +242,7 @@ public static class UiFactory
         return tmp;
     }
 
-    public static (GameObject Root, TMP_InputField Input) CreateInputField(Transform parent, string name, string initialText, Action<string> onCommit, float width = 120f, float height = 26f, string placeholderText = "")
+    public static (GameObject Root, TMP_InputField Input) CreateInputField(Transform parent, string name, string initialText, Action<string> onCommit, float width = 120f, float height = 24f, string placeholderText = "")
     {
         var root = CreatePanel(parent, name, CyberPalette.ColorBorderSubtle, CyberPalette.ColorVoidBlack, 1f);
         var targetWidth = width > 0f ? width : 120f;
@@ -251,8 +267,8 @@ public static class UiFactory
         var textRT = textObj.GetComponent<RectTransform>();
         textRT.anchorMin = Vector2.zero;
         textRT.anchorMax = Vector2.one;
-        textRT.offsetMin = new Vector2(6f, 2f);
-        textRT.offsetMax = new Vector2(-6f, -2f);
+        textRT.offsetMin = new Vector2(6f, 1f);
+        textRT.offsetMax = new Vector2(-6f, -1f);
 
         var textTmp = textObj.GetComponent<TextMeshProUGUI>();
         var font = ResolveFont();
@@ -261,7 +277,7 @@ public static class UiFactory
             textTmp.font = font;
         }
 
-        textTmp.fontSize = 11f;
+        textTmp.fontSize = GetScaledFontSize(10.5f);
         textTmp.color = CyberPalette.ColorTextMain;
 
         var input = root.AddComponent<TMP_InputField>();
@@ -275,8 +291,8 @@ public static class UiFactory
             var placeholderRT = placeholderObj.GetComponent<RectTransform>();
             placeholderRT.anchorMin = Vector2.zero;
             placeholderRT.anchorMax = Vector2.one;
-            placeholderRT.offsetMin = new Vector2(6f, 2f);
-            placeholderRT.offsetMax = new Vector2(-6f, -2f);
+            placeholderRT.offsetMin = new Vector2(6f, 1f);
+            placeholderRT.offsetMax = new Vector2(-6f, -1f);
 
             var placeholderTmp = placeholderObj.GetComponent<TextMeshProUGUI>();
             if (font != null)
@@ -284,7 +300,7 @@ public static class UiFactory
                 placeholderTmp.font = font;
             }
 
-            placeholderTmp.fontSize = 11f;
+            placeholderTmp.fontSize = GetScaledFontSize(10.5f);
             placeholderTmp.color = CyberPalette.ColorTextMuted;
             placeholderTmp.text = placeholderText;
 
