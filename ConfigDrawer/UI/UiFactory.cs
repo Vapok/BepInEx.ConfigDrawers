@@ -81,7 +81,8 @@ public static class UiFactory
         textRT.offsetMax = new Vector2(-6f, 0f);
 
         var tmp = textObj.GetComponent<TextMeshProUGUI>();
-        tmp.font = ResolveFont();
+        var font = ResolveFont();
+        if (font != null) tmp.font = font;
         tmp.text = labelText;
         tmp.fontSize = 11f;
         tmp.color = textColor;
@@ -97,7 +98,8 @@ public static class UiFactory
         labelObj.transform.SetParent(parent, false);
 
         var tmp = labelObj.GetComponent<TextMeshProUGUI>();
-        tmp.font = ResolveFont();
+        var font = ResolveFont();
+        if (font != null) tmp.font = font;
         tmp.text = text;
         tmp.fontSize = fontSize;
         tmp.color = color;
@@ -129,7 +131,8 @@ public static class UiFactory
         textRT.offsetMax = new Vector2(-6f, -2f);
 
         var textTmp = textObj.GetComponent<TextMeshProUGUI>();
-        textTmp.font = ResolveFont();
+        var font = ResolveFont();
+        if (font != null) textTmp.font = font;
         textTmp.fontSize = 11f;
         textTmp.color = CyberPalette.ColorTextMain;
 

@@ -9,6 +9,7 @@
     <BEPINEX_CORE>$(ReferencesRoot)/BepInEx/5.4.2350/BepInEx/core</BEPINEX_CORE>
     <UNITY_MANAGED>$(ReferencesRoot)/Valheim/1.0.15/Managed</UNITY_MANAGED>
     <ReleaseRoot>/home/vapok/Modding/Releases</ReleaseRoot>
+    <DevPluginsFolder Condition="'$(DevPluginsFolder)' == ''">/home/vapok/Modding/Gale Profiles/Default/BepInEx/plugins</DevPluginsFolder>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <OutputPath>bin\$(Configuration)\</OutputPath>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
@@ -61,4 +62,8 @@
       <Private>false</Private>
     </Reference>
   </ItemGroup>
+
+  <Target Name="CopyToDev" AfterTargets="Build" Condition="Exists('$(DevPluginsFolder)')">
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(DevPluginsFolder)/Vapok-BepInEx_ConfigDrawers" SkipUnchangedFiles="true" />
+  </Target>
 </Project>

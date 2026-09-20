@@ -34,7 +34,7 @@ public static class LegacyManagerSuppressor
                 }
 
                 var type = comp.GetType();
-                if (type.FullName == "ConfigurationManager.ConfigurationManager")
+                if (type.FullName == "ConfigurationManager.ConfigurationManager" && comp.GetType().Assembly != typeof(ConfigDrawers).Assembly)
                 {
                     SuppressComponent(comp, type, logger);
                     _suppressed = true;
