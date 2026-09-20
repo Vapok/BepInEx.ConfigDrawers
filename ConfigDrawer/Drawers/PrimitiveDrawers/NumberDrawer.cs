@@ -1,11 +1,8 @@
 using System;
-using System.Globalization;
-using BepInEx.Configuration;
-using BepInEx.ConfigDrawers.Components;
 using BepInEx.ConfigDrawers.Models;
 using BepInEx.ConfigDrawers.UI;
+using TMPro;
 using UnityEngine;
-using UnityEngine.UI;
 
 namespace BepInEx.ConfigDrawers.Drawers.PrimitiveDrawers;
 
@@ -18,52 +15,30 @@ public static class NumberDrawer
             throw new ArgumentNullException(entry == null ? nameof(entry) : nameof(parent));
         }
 
-        var rowObj = CreateRowContainer(parent, entry);
-        var valueArea = rowObj.transform.Find("ValueArea");
-        var targetParent = valueArea != null ? valueArea : rowObj.transform;
+        TMP_InputField? input = null;
 
-        var (inputRoot, inputField) = UiFactory.CreateInputField(targetParent, "Input", entry.EditBuffer, text =>
+        var rowObj = DrawerDispatcher.CreateRowContainer(parent, entry, out var valueArea, () =>
+        {
+            if (input != null)
+            {
+                input.text = entry.EditBuffer;
+            }
+        });
+
+        var (inputRoot, inputField) = UiFactory.CreateInputField(valueArea, "Input", entry.EditBuffer, text =>
         {
             entry.UpdateBuffer(text);
             entry.CommitBuffer();
-        }, 80f, 24f);
+        }, 75f, 22f);
 
+        input = inputField;
         inputField.onValueChanged.AddListener(val =>
         {
             entry.UpdateBuffer(val);
         });
 
+        inputRoot.transform.SetAsFirstSibling();
+
         return rowObj;
-    }
-
-    private static GameObject CreateRowContainer(Transform parent, SettingEntry entry)
-    {
-        var row = UiFactory.CreatePanel(parent, $"Row_{entry.Key}", CyberPalette.ColorBorderCard, CyberPalette.ColorCardSurface, 1f);
-        var layout = row.AddComponent<LayoutElement>();
-        layout.minHeight = 32f;
-        layout.preferredHeight = 32f;
-
-        var hover = row.AddComponent<HoverCardHandler>();
-        hover.Bind(entry);
-
-        var fill = row.transform.Find("Fill");
-        var target = fill != null ? fill : row.transform;
-
-        var label = UiFactory.CreateLabel(target, "Label", entry.DispName, entry.EntryColor, 11f);
-        var labelRT = label.GetComponent<RectTransform>();
-        labelRT.anchorMin = new Vector2(0f, 0f);
-        labelRT.anchorMax = new Vector2(0.55f, 1f);
-        labelRT.offsetMin = new Vector2(10f, 0f);
-        labelRT.offsetMax = Vector2.zero;
-
-        var valueArea = new GameObject("ValueArea", typeof(RectTransform));
-        valueArea.transform.SetParent(target, false);
-        var valueRT = valueArea.GetComponent<RectTransform>();
-        valueRT.anchorMin = new Vector2(0.55f, 0f);
-        valueRT.anchorMax = new Vector2(1f, 1f);
-        valueRT.offsetMin = Vector2.zero;
-        valueRT.offsetMax = new Vector2(-10f, 0f);
-
-        return row;
     }
 }

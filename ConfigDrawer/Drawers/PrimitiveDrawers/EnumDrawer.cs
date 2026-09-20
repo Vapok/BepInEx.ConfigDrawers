@@ -1,10 +1,8 @@
 using System;
-using BepInEx.ConfigDrawers.Components;
 using BepInEx.ConfigDrawers.Models;
 using BepInEx.ConfigDrawers.UI;
 using TMPro;
 using UnityEngine;
-using UnityEngine.UI;
 
 namespace BepInEx.ConfigDrawers.Drawers.PrimitiveDrawers;
 
@@ -17,25 +15,38 @@ public static class EnumDrawer
             throw new ArgumentNullException(entry == null ? nameof(entry) : nameof(parent));
         }
 
-        var rowObj = CreateRowContainer(parent, entry);
-        var valueArea = rowObj.transform.Find("ValueArea");
-        var targetParent = valueArea != null ? valueArea : rowObj.transform;
+        GameObject? btnObj = null;
+
+        var rowObj = DrawerDispatcher.CreateRowContainer(parent, entry, out var valueArea, () =>
+        {
+            if (btnObj != null)
+            {
+                var cur = entry.ConfigEntry.BoxedValue?.ToString() ?? "None";
+                var tmp = btnObj.GetComponentInChildren<TextMeshProUGUI>();
+                if (tmp != null)
+                {
+                    tmp.text = $"[ {cur} ]";
+                }
+            }
+        });
 
         var currentVal = entry.ConfigEntry.BoxedValue;
         var labelText = currentVal?.ToString() ?? "None";
 
-        var btn = UiFactory.CreateCyberButton(targetParent, "EnumBtn", $"[ {labelText} ]", () =>
+        btnObj = UiFactory.CreateCyberButton(valueArea, "EnumBtn", $"[ {labelText} ]", () =>
         {
-            CycleNext(entry, targetParent);
-        }, CyberPalette.ColorCyberTeal, CyberPalette.ColorIceBlueBright, 130f, 24f);
+            CycleNext(entry, btnObj);
+        }, CyberPalette.ColorCyberTeal, CyberPalette.ColorIceBlueBright, 110f, 22f);
+
+        btnObj.transform.SetAsFirstSibling();
 
         return rowObj;
     }
 
-    private static void CycleNext(SettingEntry entry, Transform container)
+    private static void CycleNext(SettingEntry entry, GameObject? btnObj)
     {
         var values = Enum.GetValues(entry.SettingType);
-        if (values.Length == 0)
+        if (values.Length == 0 || btnObj == null)
         {
             return;
         }
@@ -46,42 +57,11 @@ public static class EnumDrawer
         if (nextVal != null)
         {
             entry.SetValue(nextVal);
-            var tmp = container.GetComponentInChildren<TextMeshProUGUI>();
+            var tmp = btnObj.GetComponentInChildren<TextMeshProUGUI>();
             if (tmp != null)
             {
                 tmp.text = $"[ {nextVal} ]";
             }
         }
-    }
-
-    private static GameObject CreateRowContainer(Transform parent, SettingEntry entry)
-    {
-        var row = UiFactory.CreatePanel(parent, $"Row_{entry.Key}", CyberPalette.ColorBorderCard, CyberPalette.ColorCardSurface, 1f);
-        var layout = row.AddComponent<LayoutElement>();
-        layout.minHeight = 32f;
-        layout.preferredHeight = 32f;
-
-        var hover = row.AddComponent<HoverCardHandler>();
-        hover.Bind(entry);
-
-        var fill = row.transform.Find("Fill");
-        var target = fill != null ? fill : row.transform;
-
-        var label = UiFactory.CreateLabel(target, "Label", entry.DispName, entry.EntryColor, 11f);
-        var labelRT = label.GetComponent<RectTransform>();
-        labelRT.anchorMin = new Vector2(0f, 0f);
-        labelRT.anchorMax = new Vector2(0.55f, 1f);
-        labelRT.offsetMin = new Vector2(10f, 0f);
-        labelRT.offsetMax = Vector2.zero;
-
-        var valueArea = new GameObject("ValueArea", typeof(RectTransform));
-        valueArea.transform.SetParent(target, false);
-        var valueRT = valueArea.GetComponent<RectTransform>();
-        valueRT.anchorMin = new Vector2(0.55f, 0f);
-        valueRT.anchorMax = new Vector2(1f, 1f);
-        valueRT.offsetMin = Vector2.zero;
-        valueRT.offsetMax = new Vector2(-10f, 0f);
-
-        return row;
     }
 }

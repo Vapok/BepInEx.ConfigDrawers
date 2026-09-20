@@ -1,5 +1,4 @@
 using System;
-using BepInEx.ConfigDrawers.Components;
 using BepInEx.ConfigDrawers.Models;
 using BepInEx.ConfigDrawers.UI;
 using TMPro;
@@ -17,27 +16,41 @@ public static class TextDrawer
             throw new ArgumentNullException(entry == null ? nameof(entry) : nameof(parent));
         }
 
-        var rowObj = CreateRowContainer(parent, entry);
-        var valueArea = rowObj.transform.Find("ValueArea");
-        var targetParent = valueArea != null ? valueArea : rowObj.transform;
+        GameObject? inputRootObj = null;
+        TMP_InputField? inputFieldObj = null;
 
-        GameObject inputRoot = null!;
-        TMP_InputField inputField = null!;
-        (inputRoot, inputField) = UiFactory.CreateInputField(targetParent, "Input", entry.EditBuffer, text =>
+        var rowObj = DrawerDispatcher.CreateRowContainer(parent, entry, out var valueArea, () =>
+        {
+            if (inputFieldObj != null)
+            {
+                inputFieldObj.text = entry.EditBuffer;
+            }
+            if (inputRootObj != null)
+            {
+                UpdateVisuals(inputRootObj, entry);
+            }
+        });
+
+        (inputRootObj, inputFieldObj) = UiFactory.CreateInputField(valueArea, "Input", entry.EditBuffer, text =>
         {
             entry.UpdateBuffer(text);
             entry.CommitBuffer();
-            if (inputRoot != null)
+            if (inputRootObj != null)
             {
-                UpdateVisuals(inputRoot, entry);
+                UpdateVisuals(inputRootObj, entry);
             }
-        }, 140f, 24f);
+        }, 130f, 22f);
 
-        inputField.onValueChanged.AddListener(val =>
+        inputFieldObj.onValueChanged.AddListener(val =>
         {
             entry.UpdateBuffer(val);
-            UpdateVisuals(inputRoot, entry);
+            if (inputRootObj != null)
+            {
+                UpdateVisuals(inputRootObj, entry);
+            }
         });
+
+        inputRootObj.transform.SetAsFirstSibling();
 
         return rowObj;
     }
@@ -62,36 +75,5 @@ public static class TextDrawer
         {
             img.color = CyberPalette.ColorBorderSubtle;
         }
-    }
-
-    private static GameObject CreateRowContainer(Transform parent, SettingEntry entry)
-    {
-        var row = UiFactory.CreatePanel(parent, $"Row_{entry.Key}", CyberPalette.ColorBorderCard, CyberPalette.ColorCardSurface, 1f);
-        var layout = row.AddComponent<LayoutElement>();
-        layout.minHeight = 32f;
-        layout.preferredHeight = 32f;
-
-        var hover = row.AddComponent<HoverCardHandler>();
-        hover.Bind(entry);
-
-        var fill = row.transform.Find("Fill");
-        var target = fill != null ? fill : row.transform;
-
-        var label = UiFactory.CreateLabel(target, "Label", entry.DispName, entry.EntryColor, 11f);
-        var labelRT = label.GetComponent<RectTransform>();
-        labelRT.anchorMin = new Vector2(0f, 0f);
-        labelRT.anchorMax = new Vector2(0.55f, 1f);
-        labelRT.offsetMin = new Vector2(10f, 0f);
-        labelRT.offsetMax = Vector2.zero;
-
-        var valueArea = new GameObject("ValueArea", typeof(RectTransform));
-        valueArea.transform.SetParent(target, false);
-        var valueRT = valueArea.GetComponent<RectTransform>();
-        valueRT.anchorMin = new Vector2(0.55f, 0f);
-        valueRT.anchorMax = new Vector2(1f, 1f);
-        valueRT.offsetMin = Vector2.zero;
-        valueRT.offsetMax = new Vector2(-10f, 0f);
-
-        return row;
     }
 }

@@ -1,7 +1,7 @@
 using System;
-using BepInEx.ConfigDrawers.Components;
 using BepInEx.ConfigDrawers.Models;
 using BepInEx.ConfigDrawers.UI;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -16,71 +16,61 @@ public static class ColorDrawer
             throw new ArgumentNullException(entry == null ? nameof(entry) : nameof(parent));
         }
 
-        var rowObj = CreateRowContainer(parent, entry);
-        var valueArea = rowObj.transform.Find("ValueArea");
-        var targetParent = valueArea != null ? valueArea : rowObj.transform;
+        GameObject? previewObj = null;
+        TMP_InputField? inputFieldObj = null;
 
-        var currentColor = entry.ConfigEntry.BoxedValue is Color c ? c : Color.white;
+        var rowObj = DrawerDispatcher.CreateRowContainer(parent, entry, out var valueArea, () =>
+        {
+            var cur = entry.ConfigEntry.BoxedValue is Color c ? c : Color.white;
+            var h = "#" + ColorUtility.ToHtmlStringRGBA(cur);
+            if (inputFieldObj != null)
+            {
+                inputFieldObj.text = h;
+            }
+            if (previewObj != null)
+            {
+                var f = previewObj.transform.Find("Fill");
+                var img = f?.GetComponent<Image>();
+                if (img != null)
+                {
+                    img.color = cur;
+                }
+            }
+        });
+
+        var currentColor = entry.ConfigEntry.BoxedValue is Color col ? col : Color.white;
         var hex = "#" + ColorUtility.ToHtmlStringRGBA(currentColor);
 
-        var preview = UiFactory.CreatePanel(targetParent, "Preview", CyberPalette.ColorIceBlue, currentColor, 1f);
-        var previewLayout = preview.AddComponent<LayoutElement>();
-        previewLayout.minWidth = 24f;
-        previewLayout.preferredWidth = 24f;
-        previewLayout.minHeight = 24f;
-        previewLayout.preferredHeight = 24f;
+        previewObj = UiFactory.CreatePanel(valueArea, "Preview", CyberPalette.ColorIceBlue, currentColor, 1f);
+        var previewRT = previewObj.GetComponent<RectTransform>();
+        previewRT.sizeDelta = new Vector2(22f, 22f);
+        var previewLayout = previewObj.AddComponent<LayoutElement>();
+        previewLayout.minWidth = 22f;
+        previewLayout.preferredWidth = 22f;
+        previewLayout.flexibleWidth = 0f;
+        previewLayout.minHeight = 22f;
+        previewLayout.preferredHeight = 22f;
+        previewLayout.flexibleHeight = 0f;
 
-        var (inputRoot, _) = UiFactory.CreateInputField(targetParent, "HexInput", hex, text =>
+        var (inputRoot, inputField) = UiFactory.CreateInputField(valueArea, "HexInput", hex, text =>
         {
             if (ColorUtility.TryParseHtmlString(text.StartsWith("#") ? text : "#" + text, out var parsed))
             {
                 entry.SetValue(parsed);
-                var fill = preview.transform.Find("Fill");
+                var fill = previewObj.transform.Find("Fill");
                 var img = fill?.GetComponent<Image>();
                 if (img != null)
                 {
                     img.color = parsed;
                 }
             }
-        }, 90f, 24f);
+        }, 85f, 22f);
+
+        inputFieldObj = inputField;
+
+        previewObj.transform.SetAsFirstSibling();
+        inputRoot.transform.SetSiblingIndex(1);
 
         return rowObj;
-    }
-
-    private static GameObject CreateRowContainer(Transform parent, SettingEntry entry)
-    {
-        var row = UiFactory.CreatePanel(parent, $"Row_{entry.Key}", CyberPalette.ColorBorderCard, CyberPalette.ColorCardSurface, 1f);
-        var layout = row.AddComponent<LayoutElement>();
-        layout.minHeight = 32f;
-        layout.preferredHeight = 32f;
-
-        var hover = row.AddComponent<HoverCardHandler>();
-        hover.Bind(entry);
-
-        var fill = row.transform.Find("Fill");
-        var target = fill != null ? fill : row.transform;
-
-        var label = UiFactory.CreateLabel(target, "Label", entry.DispName, entry.EntryColor, 11f);
-        var labelRT = label.GetComponent<RectTransform>();
-        labelRT.anchorMin = new Vector2(0f, 0f);
-        labelRT.anchorMax = new Vector2(0.55f, 1f);
-        labelRT.offsetMin = new Vector2(10f, 0f);
-        labelRT.offsetMax = Vector2.zero;
-
-        var valueArea = new GameObject("ValueArea", typeof(RectTransform), typeof(HorizontalLayoutGroup));
-        valueArea.transform.SetParent(target, false);
-        var valueRT = valueArea.GetComponent<RectTransform>();
-        valueRT.anchorMin = new Vector2(0.55f, 0f);
-        valueRT.anchorMax = new Vector2(1f, 1f);
-        valueRT.offsetMin = Vector2.zero;
-        valueRT.offsetMax = new Vector2(-10f, 0f);
-
-        var hlg = valueArea.GetComponent<HorizontalLayoutGroup>();
-        hlg.spacing = 6f;
-        hlg.childAlignment = TextAnchor.MiddleRight;
-        hlg.childControlWidth = false;
-        hlg.childControlHeight = false;
-
-        return row;
     }
 }

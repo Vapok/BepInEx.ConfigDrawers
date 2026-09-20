@@ -1,5 +1,4 @@
 using System;
-using BepInEx.ConfigDrawers.Components;
 using BepInEx.ConfigDrawers.Models;
 using BepInEx.ConfigDrawers.UI;
 using TMPro;
@@ -17,29 +16,41 @@ public static class BoolDrawer
             throw new ArgumentNullException(entry == null ? nameof(entry) : nameof(parent));
         }
 
-        var rowObj = CreateRowContainer(parent, entry);
-        var valueArea = rowObj.transform.Find("ValueArea");
-        var targetParent = valueArea != null ? valueArea : rowObj.transform;
+        GameObject? btnObj = null;
 
-        var currentVal = entry.ConfigEntry.BoxedValue is bool b && b;
+        var rowObj = DrawerDispatcher.CreateRowContainer(parent, entry, out var valueArea, () =>
+        {
+            var cur = entry.ConfigEntry.BoxedValue is bool b && b;
+            if (btnObj != null)
+            {
+                UpdateDisplay(btnObj, cur);
+            }
+        });
+
+        var currentVal = entry.ConfigEntry.BoxedValue is bool val && val;
         var btnText = currentVal ? "[ ON ]" : "[ OFF ]";
         var borderColor = currentVal ? CyberPalette.ColorGlacialMint : CyberPalette.ColorBorderSubtle;
         var textColor = currentVal ? CyberPalette.ColorGlacialMint : CyberPalette.ColorTextMuted;
 
-        var btn = UiFactory.CreateCyberButton(targetParent, "ToggleBtn", btnText, () =>
+        btnObj = UiFactory.CreateCyberButton(valueArea, "ToggleBtn", btnText, () =>
         {
-            var next = !(entry.ConfigEntry.BoxedValue is bool val && val);
+            var next = !(entry.ConfigEntry.BoxedValue is bool v && v);
             entry.SetValue(next);
-            UpdateDisplay(targetParent, next);
-        }, borderColor, textColor, 70f, 24f);
+            if (btnObj != null)
+            {
+                UpdateDisplay(btnObj, next);
+            }
+        }, borderColor, textColor, 60f, 22f);
+
+        btnObj.transform.SetAsFirstSibling();
 
         return rowObj;
     }
 
-    private static void UpdateDisplay(Transform parent, bool state)
+    private static void UpdateDisplay(GameObject btnObj, bool state)
     {
-        var tmp = parent.GetComponentInChildren<TextMeshProUGUI>();
-        var img = parent.GetComponentInChildren<Image>();
+        var tmp = btnObj.GetComponentInChildren<TextMeshProUGUI>();
+        var img = btnObj.GetComponent<Image>();
         if (tmp != null)
         {
             tmp.text = state ? "[ ON ]" : "[ OFF ]";
@@ -50,36 +61,5 @@ public static class BoolDrawer
         {
             img.color = state ? CyberPalette.ColorGlacialMint : CyberPalette.ColorBorderSubtle;
         }
-    }
-
-    private static GameObject CreateRowContainer(Transform parent, SettingEntry entry)
-    {
-        var row = UiFactory.CreatePanel(parent, $"Row_{entry.Key}", CyberPalette.ColorBorderCard, CyberPalette.ColorCardSurface, 1f);
-        var layout = row.AddComponent<LayoutElement>();
-        layout.minHeight = 32f;
-        layout.preferredHeight = 32f;
-
-        var hover = row.AddComponent<HoverCardHandler>();
-        hover.Bind(entry);
-
-        var fill = row.transform.Find("Fill");
-        var target = fill != null ? fill : row.transform;
-
-        var label = UiFactory.CreateLabel(target, "Label", entry.DispName, entry.EntryColor, 11f);
-        var labelRT = label.GetComponent<RectTransform>();
-        labelRT.anchorMin = new Vector2(0f, 0f);
-        labelRT.anchorMax = new Vector2(0.6f, 1f);
-        labelRT.offsetMin = new Vector2(10f, 0f);
-        labelRT.offsetMax = Vector2.zero;
-
-        var valueArea = new GameObject("ValueArea", typeof(RectTransform));
-        valueArea.transform.SetParent(target, false);
-        var valueRT = valueArea.GetComponent<RectTransform>();
-        valueRT.anchorMin = new Vector2(0.6f, 0f);
-        valueRT.anchorMax = new Vector2(1f, 1f);
-        valueRT.offsetMin = Vector2.zero;
-        valueRT.offsetMax = new Vector2(-10f, 0f);
-
-        return row;
     }
 }
