@@ -30,6 +30,7 @@ public static class TextDrawer
         TextMeshProUGUI? labelTmp = null;
         RectTransform? iconRT = null;
         var isExpanded = false;
+        Action? updateMultilineHeight = null;
 
         void UpdateLabel()
         {
@@ -63,6 +64,7 @@ public static class TextDrawer
             if (multilineInputObj != null)
             {
                 multilineInputObj.text = text ?? string.Empty;
+                updateMultilineHeight?.Invoke();
             }
             if (inputRootObj != null)
             {
@@ -91,15 +93,66 @@ public static class TextDrawer
                 iconRT = UiFactory.AttachTextPadIcon(leftArea, labelTmp);
             }
 
+            updateMultilineHeight = () =>
+            {
+                if (multilineRootObj == null || multilineInputObj == null)
+                {
+                    return;
+                }
+
+                var textTmp = multilineInputObj.textComponent;
+                if (textTmp == null)
+                {
+                    return;
+                }
+
+                var text = multilineInputObj.text ?? string.Empty;
+                var rootRT = multilineRootObj.GetComponent<RectTransform>();
+                var width = rootRT != null && rootRT.rect.width > 50f ? rootRT.rect.width - 24f : 320f;
+                var preferred = textTmp.GetPreferredValues(text, width, 10000f);
+                var targetHeight = Mathf.Clamp(preferred.y + 20f, 68f, 360f);
+
+                var layout = multilineRootObj.GetComponent<LayoutElement>();
+                if (layout != null && Mathf.Abs(layout.preferredHeight - targetHeight) > 1f)
+                {
+                    layout.minHeight = targetHeight;
+                    layout.preferredHeight = targetHeight;
+
+                    if (rootRT != null)
+                    {
+                        rootRT.sizeDelta = new Vector2(rootRT.sizeDelta.x, targetHeight);
+                    }
+
+                    var scrollRect = parent.GetComponentInParent<ScrollRect>();
+                    if (scrollRect != null && scrollRect.content != null)
+                    {
+                        LayoutRebuilder.ForceRebuildLayoutImmediate(scrollRect.content);
+                    }
+                    else if (parent is RectTransform pRT)
+                    {
+                        LayoutRebuilder.ForceRebuildLayoutImmediate(pRT);
+                    }
+                }
+            };
+
             Action toggleAction = () =>
             {
                 isExpanded = !isExpanded;
                 if (subpanelObj != null)
                 {
                     subpanelObj.SetActive(isExpanded);
+                    if (isExpanded)
+                    {
+                        updateMultilineHeight?.Invoke();
+                    }
                 }
                 UpdateLabel();
-                if (parent is RectTransform pRT)
+                var scrollRect = parent.GetComponentInParent<ScrollRect>();
+                if (scrollRect != null && scrollRect.content != null)
+                {
+                    LayoutRebuilder.ForceRebuildLayoutImmediate(scrollRect.content);
+                }
+                else if (parent is RectTransform pRT)
                 {
                     LayoutRebuilder.ForceRebuildLayoutImmediate(pRT);
                 }
@@ -132,16 +185,20 @@ public static class TextDrawer
             {
                 entry.UpdateBuffer(text);
                 entry.CommitBuffer();
+                updateMultilineHeight?.Invoke();
                 if (multilineRootObj != null)
                 {
                     UpdateVisuals(multilineRootObj, entry);
                 }
             }, -1f, 68f, "", true);
 
+            updateMultilineHeight?.Invoke();
+
             multilineInputObj.interactable = entry.CanEdit;
             multilineInputObj.onValueChanged.AddListener(val =>
             {
                 entry.UpdateBuffer(val);
+                updateMultilineHeight?.Invoke();
                 if (multilineRootObj != null)
                 {
                     UpdateVisuals(multilineRootObj, entry);
@@ -186,6 +243,11 @@ public static class TextDrawer
         if (entry == null)
         {
             return false;
+        }
+
+        if (entry.IsCustomTextArea)
+        {
+            return true;
         }
 
         var key = entry.Key.ToLowerInvariant();

@@ -19,7 +19,7 @@ public static class DataGridDrawer
             return false;
         }
 
-        if (entry.CustomDrawer != null)
+        if (entry.CustomDrawer != null || entry.IsCustomTextArea)
         {
             return false;
         }

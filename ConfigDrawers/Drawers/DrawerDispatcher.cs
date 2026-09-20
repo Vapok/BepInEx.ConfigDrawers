@@ -27,11 +27,6 @@ public static class DrawerDispatcher
             return LegacyImguiBridge.Draw(parent, entry);
         }
 
-        if (entry.CustomDrawer != null)
-        {
-            return LegacyBridge.LegacyImguiBridge.Draw(parent, entry);
-        }
-
         if (DataGridDrawer.CanDraw(entry))
         {
             return DataGridDrawer.Draw(parent, entry);
@@ -177,7 +172,10 @@ public static class DrawerDispatcher
             var iconImg = iconObj.GetComponent<Image>();
             iconImg.sprite = entry.CanEdit ? IconFactory.GetSyncIcon() : IconFactory.GetLockIcon();
             iconImg.color = entry.CanEdit ? CyberPalette.ColorIceBlueBright : CyberPalette.ColorWarningAmber;
-            iconImg.raycastTarget = false;
+            iconImg.raycastTarget = true;
+
+            var tooltip = iconObj.AddComponent<StatusIconTooltipHandler>();
+            tooltip.Bind(entry);
         }
 
         return row;

@@ -63,6 +63,14 @@
       <HintPath>$(UNITY_MANAGED)/UnityEngine.UIElementsModule.dll</HintPath>
       <Private>false</Private>
     </Reference>
+    <Reference Include="UnityEngine.AssetBundleModule">
+      <HintPath>$(UNITY_MANAGED)/UnityEngine.AssetBundleModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.TextCoreFontEngineModule">
+      <HintPath>$(UNITY_MANAGED)/UnityEngine.TextCoreFontEngineModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
   </ItemGroup>
 
   <!-- Debug/Local Build: Auto-deploy to DevPluginsFolder -->
@@ -84,4 +92,10 @@
     <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(DevPluginsFolder)/Vapok-$(PackageId)" SkipUnchangedFiles="true" Condition="Exists('$(DevPluginsFolder)')" />
     <ZipDirectory SourceDirectory="$(StagingDir)" DestinationFile="$(ZipOutput)" Overwrite="true" />
   </Target>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Resources/configdrawfonts" />
+    <EmbeddedResource Include="Resources/Hack-Regular.ttf" />
+    <EmbeddedResource Include="Resources/Hack-Bold.ttf" />
+  </ItemGroup>
 </Project>

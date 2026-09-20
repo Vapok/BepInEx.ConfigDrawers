@@ -17,6 +17,11 @@ public static class JsonEditorDrawer
             return false;
         }
 
+        if (entry.CustomDrawer != null || entry.IsCustomTextArea)
+        {
+            return false;
+        }
+
         var text = entry.ConfigEntry?.BoxedValue as string;
         if (text == null || text.Trim().Length == 0)
         {

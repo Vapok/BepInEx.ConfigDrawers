@@ -1,3 +1,4 @@
+using System.IO;
 using System;
 using BepInEx.ConfigDrawers.Configuration;
 using TMPro;
@@ -27,12 +28,152 @@ public static class UiFactory
         return Mathf.Round(baseSize * GetFontScaleFactor());
     }
 
+    private static AssetBundle? _fontAssetBundle;
+    private static TMP_FontAsset? _customFontRegular;
+    private static TMP_FontAsset? _customFontBold;
+    private static bool _bundleLoadAttempted;
+
+    private static TMP_FontAsset? CreateFontFromTtf(string resourceName, string fontFileName)
+    {
+        try
+        {
+            var asm = typeof(UiFactory).Assembly;
+            using var stream = asm.GetManifestResourceStream(resourceName);
+            if (stream == null)
+            {
+                return null;
+            }
+
+            var cacheDir = Path.Combine(BepInEx.Paths.CachePath, "ConfigDrawers");
+            if (!Directory.Exists(cacheDir))
+            {
+                Directory.CreateDirectory(cacheDir);
+            }
+
+            var fontPath = Path.Combine(cacheDir, fontFileName);
+            using (var fs = new FileStream(fontPath, FileMode.Create, FileAccess.Write))
+            {
+                stream.CopyTo(fs);
+            }
+
+            var fontAsset = TMP_FontAsset.CreateFontAsset(
+                fontPath,
+                0,
+                36,
+                5,
+                UnityEngine.TextCore.LowLevel.GlyphRenderMode.SDFAA,
+                1024,
+                1024
+            );
+
+            if (fontAsset != null)
+            {
+                ConfigDrawers.Log?.LogInfo($"[ConfigDrawers] Generated dynamic TMP font from {fontFileName}");
+                return fontAsset;
+            }
+        }
+        catch (Exception ex)
+        {
+            ConfigDrawers.Log?.LogWarning($"[ConfigDrawers] Error creating font from TTF {fontFileName}: {ex.Message}");
+        }
+
+        return null;
+    }
+
+    private static void EnsureCustomFontLoaded()
+    {
+        if (_bundleLoadAttempted)
+        {
+            return;
+        }
+
+        _bundleLoadAttempted = true;
+
+        try
+        {
+            var asm = typeof(UiFactory).Assembly;
+            using var stream = asm.GetManifestResourceStream("BepInEx.ConfigDrawers.Resources.configdrawfonts");
+            if (stream != null)
+            {
+                using var ms = new MemoryStream();
+                stream.CopyTo(ms);
+                _fontAssetBundle = AssetBundle.LoadFromMemory(ms.ToArray());
+                if (_fontAssetBundle != null)
+                {
+                    var allFonts = _fontAssetBundle.LoadAllAssets<TMP_FontAsset>();
+                    if (allFonts != null && allFonts.Length > 0)
+                    {
+                        foreach (var f in allFonts)
+                        {
+                            if (f == null || string.IsNullOrEmpty(f.name))
+                            {
+                                continue;
+                            }
+
+                            var ln = f.name.ToLowerInvariant();
+                            if (ln.Contains("regular"))
+                            {
+                                _customFontRegular = f;
+                            }
+                            else if (ln.Contains("bold") && !ln.Contains("italic"))
+                            {
+                                _customFontBold = f;
+                            }
+                        }
+
+                        if (_customFontRegular == null && allFonts.Length > 0)
+                        {
+                            _customFontRegular = allFonts[0];
+                        }
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            ConfigDrawers.Log?.LogWarning($"[ConfigDrawers] Bundle load exception: {ex.Message}");
+        }
+
+        if (_customFontRegular == null)
+        {
+            _customFontRegular = CreateFontFromTtf("BepInEx.ConfigDrawers.Resources.Hack-Regular.ttf", "Hack-Regular.ttf");
+            _customFontBold = CreateFontFromTtf("BepInEx.ConfigDrawers.Resources.Hack-Bold.ttf", "Hack-Bold.ttf");
+        }
+
+        if (_customFontRegular != null && _customFontRegular.material != null)
+        {
+            var existingFonts = Resources.FindObjectsOfTypeAll<TMP_FontAsset>();
+            if (existingFonts != null && existingFonts.Length > 0)
+            {
+                foreach (var existing in existingFonts)
+                {
+                    if (existing != null && existing != _customFontRegular && existing.material != null && existing.material.shader != null)
+                    {
+                        _customFontRegular.material.shader = existing.material.shader;
+                        if (_customFontBold != null && _customFontBold.material != null)
+                        {
+                            _customFontBold.material.shader = existing.material.shader;
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
     private static TMP_FontAsset? _cachedTerminalFont;
 
     public static TMP_FontAsset? ResolveTerminalFont()
     {
         if (_cachedTerminalFont != null && _cachedTerminalFont)
         {
+            return _cachedTerminalFont;
+        }
+
+        EnsureCustomFontLoaded();
+        if (_customFontRegular != null && _customFontRegular)
+        {
+            _cachedTerminalFont = _customFontRegular;
             return _cachedTerminalFont;
         }
 
@@ -71,6 +212,13 @@ public static class UiFactory
     {
         if (_cachedFont != null && _cachedFont)
         {
+            return _cachedFont;
+        }
+
+        EnsureCustomFontLoaded();
+        if (_customFontRegular != null && _customFontRegular)
+        {
+            SetCachedFont(_customFontRegular);
             return _cachedFont;
         }
 

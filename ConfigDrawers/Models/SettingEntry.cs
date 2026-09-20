@@ -37,6 +37,7 @@ public class SettingEntry
     public Color EntryColor { get; private set; } = Color.white;
     public Color DescriptionColor { get; private set; } = Color.white;
     public Action<ConfigEntryBase>? CustomDrawer { get; private set; }
+    public bool IsCustomTextArea { get; private set; }
     public AcceptableValueBase? AcceptableValues => ConfigEntry.Description.AcceptableValues;
     public KeyValuePair<object, object>? RangeBounds { get; private set; }
     public object[]? AcceptableValuesList { get; private set; }
@@ -242,6 +243,12 @@ public class SettingEntry
                     DefaultValue = value;
                     break;
                 case nameof(CustomDrawer) when value is Delegate del:
+                    if (SettingType == typeof(string) && IsSimpleTextAreaDrawer(del))
+                    {
+                        IsCustomTextArea = true;
+                        CustomDrawer = null;
+                        break;
+                    }
                     CustomDrawer = cfg =>
                     {
                         try
@@ -426,6 +433,73 @@ public class SettingEntry
         catch (Exception ex)
         {
             ValidationMessage = ex.Message;
+        }
+    }
+
+    private static bool IsSimpleTextAreaDrawer(Delegate del)
+    {
+        var method = del?.Method;
+        if (method == null)
+        {
+            return false;
+        }
+
+        if (method.Name.IndexOf("TextArea", StringComparison.OrdinalIgnoreCase) >= 0)
+        {
+            return true;
+        }
+
+        try
+        {
+            var body = method.GetMethodBody();
+            if (body == null)
+            {
+                return false;
+            }
+
+            var bytes = body.GetILAsByteArray();
+            if (bytes == null || bytes.Length > 250)
+            {
+                return false;
+            }
+
+            var module = method.Module;
+            var hasTextArea = false;
+            var hasOtherControls = false;
+
+            for (var i = 0; i < bytes.Length - 4; i++)
+            {
+                try
+                {
+                    var token = BitConverter.ToInt32(bytes, i);
+                    var member = module.ResolveMember(token);
+                    if (member is MethodBase mb && mb.DeclaringType != null)
+                    {
+                        var typeName = mb.DeclaringType.FullName ?? string.Empty;
+                        if (typeName.StartsWith("UnityEngine.GUI") || typeName.StartsWith("UnityEngine.GUILayout"))
+                        {
+                            if (mb.Name.Contains("TextArea"))
+                            {
+                                hasTextArea = true;
+                            }
+                            else if (mb.Name.Contains("Button") || mb.Name.Contains("Toggle") || mb.Name.Contains("Slider") || mb.Name.Contains("Window") || mb.Name.Contains("ScrollView") || mb.Name.Contains("SelectionGrid"))
+                            {
+                                hasOtherControls = true;
+                            }
+                        }
+                    }
+                }
+                catch
+                {
+                    // Ignore unresolvable token offsets
+                }
+            }
+
+            return hasTextArea && !hasOtherControls;
+        }
+        catch
+        {
+            return false;
         }
     }
 

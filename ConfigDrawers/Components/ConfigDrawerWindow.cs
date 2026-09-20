@@ -175,14 +175,23 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
             _rebindButtonText.fontSizeMin = 7.5f;
             _rebindButtonText.fontSizeMax = 10f;
         }
+        ButtonTooltipHandler.Attach(rebindBtn, "[ TOGGLE HOTKEY ]", "Click to set a new key to open and close this window.");
 
         var fontBtn = UiFactory.CreateCyberButton(controlsRow.transform, "FontBtn", GetFontSizeLabel(), OnCycleFontSize, CyberPalette.ColorBorderSubtle, CyberPalette.ColorIceBlue, 74f, 22f);
         _fontSizeButtonText = fontBtn.GetComponentInChildren<TextMeshProUGUI>();
+        ButtonTooltipHandler.Attach(fontBtn, "[ UI SCALE ]", "Cycle font size and spacing presets (Small, Normal, Large).");
 
-        UiFactory.CreateCyberButton(controlsRow.transform, "DockLeftBtn", "Left", () => ApplyDockPosition(DockPosition.Left), CyberPalette.ColorBorderSubtle, CyberPalette.ColorTextMain, 36f, 22f);
-        UiFactory.CreateCyberButton(controlsRow.transform, "DockRightBtn", "Right", () => ApplyDockPosition(DockPosition.Right), CyberPalette.ColorBorderSubtle, CyberPalette.ColorTextMain, 40f, 22f);
-        UiFactory.CreateCyberButton(controlsRow.transform, "DetachBtn", "Float", () => ApplyDockPosition(DockPosition.Floating), CyberPalette.ColorBorderSubtle, CyberPalette.ColorTextMain, 40f, 22f);
-        UiFactory.CreateCyberButton(controlsRow.transform, "CloseBtn", "X", () => SetVisible(false), CyberPalette.ColorWarningAmber, CyberPalette.ColorTextMain, 24f, 22f);
+        var leftBtn = UiFactory.CreateCyberButton(controlsRow.transform, "DockLeftBtn", "Left", () => ApplyDockPosition(DockPosition.Left), CyberPalette.ColorBorderSubtle, CyberPalette.ColorTextMain, 36f, 22f);
+        ButtonTooltipHandler.Attach(leftBtn, "[ DOCK LEFT ]", "Dock and pin the window to the left side of the screen.");
+
+        var rightBtn = UiFactory.CreateCyberButton(controlsRow.transform, "DockRightBtn", "Right", () => ApplyDockPosition(DockPosition.Right), CyberPalette.ColorBorderSubtle, CyberPalette.ColorTextMain, 40f, 22f);
+        ButtonTooltipHandler.Attach(rightBtn, "[ DOCK RIGHT ]", "Dock and pin the window to the right side of the screen.");
+
+        var floatBtn = UiFactory.CreateCyberButton(controlsRow.transform, "DetachBtn", "Float", () => ApplyDockPosition(DockPosition.Floating), CyberPalette.ColorBorderSubtle, CyberPalette.ColorTextMain, 40f, 22f);
+        ButtonTooltipHandler.Attach(floatBtn, "[ FLOAT WINDOW ]", "Detach and float the window. Freely drag anywhere.");
+
+        var closeBtn = UiFactory.CreateCyberButton(controlsRow.transform, "CloseBtn", "X", () => SetVisible(false), CyberPalette.ColorWarningAmber, CyberPalette.ColorTextMain, 24f, 22f);
+        ButtonTooltipHandler.Attach(closeBtn, "[ CLOSE ]", "Close the Config Drawers window.");
     }
 
     private string GetFontSizeLabel()
@@ -397,6 +406,7 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
             }
 
             HoverCardHandler.HideCard();
+            StatusIconTooltipHandler.HideTooltip();
             TryPauseGameInput(false);
         }
     }

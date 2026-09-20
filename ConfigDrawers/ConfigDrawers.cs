@@ -16,6 +16,7 @@ public class ConfigDrawers : BaseUnityPlugin
     public const string ModVersion = "1.0.0";
 
     public static ConfigDrawers? Instance { get; private set; }
+    public static BepInEx.Logging.ManualLogSource? Log => Instance?.Logger;
 
     private void Awake()
     {

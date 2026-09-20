@@ -1,4 +1,4 @@
-# BepInEx.BepInEx.ConfigDrawerss
+# BepInEx.ConfigDrawers
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/Vapok/BepInEx.ConfigDrawers/main/icon.png" width="128" height="128" alt="BepInEx.ConfigDrawers Logo">
@@ -19,7 +19,7 @@
 
 ## Overview
 
-**BepInEx.BepInEx.ConfigDrawerss** is a modern, lightweight, high-performance in-game Configuration Manager built from the ground up to replace outdated configuration managers. 
+**BepInEx.ConfigDrawers** is a modern, lightweight, high-performance in-game Configuration Manager built from the ground up to replace outdated configuration managers. 
 
 Designed with a sleek **Cyber-Console UI** inspired by [Vapok.io](https://vapok.io), `BepInEx.ConfigDrawers` slides out effortlessly as a side drawer when you press your hotkey, keeping your game screen visible and making mod tweaking enjoyable again.
 
