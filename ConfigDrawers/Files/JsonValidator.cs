@@ -1,10 +1,13 @@
 using System;
+using System.Collections.Generic;
 using System.Text;
 
 namespace BepInEx.ConfigDrawers.Files;
 
 public static class JsonValidator
 {
+    private const int MaxInlineArrayLength = 80;
+
     public readonly struct ValidationResult
     {
         public bool IsValid { get; }
@@ -40,7 +43,7 @@ public static class JsonValidator
                 return new ValidationResult(false, "Empty JSON document", line, col);
             }
 
-            ParseValue(json, ref index, ref line, ref col);
+            BuildNode(json, ref index, ref line, ref col);
             SkipWhitespace(json, ref index, ref line, ref col);
 
             if (index < json.Length)
@@ -67,90 +70,27 @@ public static class JsonValidator
             return json;
         }
 
-        StringBuilder sb = new StringBuilder(json.Length + 64);
-        bool inQuotes = false;
-        bool isEscaped = false;
-        int indent = 0;
-
-        for (int i = 0; i < json.Length; i++)
+        try
         {
-            char ch = json[i];
+            int index = 0;
+            int line = 1;
+            int col = 1;
 
-            if (isEscaped)
+            SkipWhitespace(json, ref index, ref line, ref col);
+            if (index >= json.Length)
             {
-                sb.Append(ch);
-                isEscaped = false;
-                continue;
+                return json;
             }
 
-            if (ch == '\\')
-            {
-                isEscaped = true;
-                sb.Append(ch);
-                continue;
-            }
-
-            if (ch == '"')
-            {
-                inQuotes = !inQuotes;
-                sb.Append(ch);
-                continue;
-            }
-
-            if (inQuotes)
-            {
-                sb.Append(ch);
-                continue;
-            }
-
-            if (char.IsWhiteSpace(ch))
-            {
-                continue;
-            }
-
-            switch (ch)
-            {
-                case '{':
-                case '[':
-                    sb.Append(ch);
-                    if (i + 1 < json.Length && ((ch == '{' && json[i + 1] == '}') || (ch == '[' && json[i + 1] == ']')))
-                    {
-                        sb.Append(json[i + 1]);
-                        i++;
-                    }
-                    else
-                    {
-                        indent++;
-                        sb.AppendLine();
-                        AppendIndent(sb, indent);
-                    }
-                    break;
-
-                case '}':
-                case ']':
-                    indent = Math.Max(0, indent - 1);
-                    sb.AppendLine();
-                    AppendIndent(sb, indent);
-                    sb.Append(ch);
-                    break;
-
-                case ',':
-                    sb.Append(ch);
-                    sb.AppendLine();
-                    AppendIndent(sb, indent);
-                    break;
-
-                case ':':
-                    sb.Append(": ");
-                    break;
-
-                default:
-                    sb.Append(ch);
-                    break;
-            }
+            JsonNode root = BuildNode(json, ref index, ref line, ref col);
+            StringBuilder sb = new StringBuilder(json.Length + 64);
+            root.Format(sb, 0);
+            return sb.ToString();
         }
-
-        return sb.ToString();
+        catch
+        {
+            return json;
+        }
     }
 
     private static void AppendIndent(StringBuilder sb, int indent)
@@ -185,7 +125,7 @@ public static class JsonValidator
         }
     }
 
-    private static void ParseValue(string text, ref int index, ref int line, ref int col)
+    private static JsonNode BuildNode(string text, ref int index, ref int line, ref int col)
     {
         SkipWhitespace(text, ref index, ref line, ref col);
         if (index >= text.Length)
@@ -197,45 +137,37 @@ public static class JsonValidator
         switch (c)
         {
             case '{':
-                ParseObject(text, ref index, ref line, ref col);
-                break;
+                return BuildObject(text, ref index, ref line, ref col);
             case '[':
-                ParseArray(text, ref index, ref line, ref col);
-                break;
+                return BuildArray(text, ref index, ref line, ref col);
             case '"':
-                ParseString(text, ref index, ref line, ref col);
-                break;
+                return new JsonPrimitive(ExtractString(text, ref index, ref line, ref col));
             case 't':
             case 'f':
-                ParseBoolean(text, ref index, ref line, ref col);
-                break;
+                return new JsonPrimitive(ExtractBoolean(text, ref index, ref line, ref col));
             case 'n':
-                ParseNull(text, ref index, ref line, ref col);
-                break;
+                return new JsonPrimitive(ExtractNull(text, ref index, ref line, ref col));
             default:
                 if (c == '-' || (c >= '0' && c <= '9'))
                 {
-                    ParseNumber(text, ref index, ref line, ref col);
+                    return new JsonPrimitive(ExtractNumber(text, ref index, ref line, ref col));
                 }
-                else
-                {
-                    throw new JsonParseException($"Unexpected token '{c}'", line, col);
-                }
-                break;
+                throw new JsonParseException($"Unexpected token '{c}'", line, col);
         }
     }
 
-    private static void ParseObject(string text, ref int index, ref int line, ref int col)
+    private static JsonObject BuildObject(string text, ref int index, ref int line, ref int col)
     {
         index++;
         col++;
         SkipWhitespace(text, ref index, ref line, ref col);
 
+        JsonObject obj = new JsonObject();
         if (index < text.Length && text[index] == '}')
         {
             index++;
             col++;
-            return;
+            return obj;
         }
 
         while (index < text.Length)
@@ -246,7 +178,7 @@ public static class JsonValidator
                 throw new JsonParseException("Expected string key in object", line, col);
             }
 
-            ParseString(text, ref index, ref line, ref col);
+            string key = ExtractString(text, ref index, ref line, ref col);
             SkipWhitespace(text, ref index, ref line, ref col);
 
             if (index >= text.Length || text[index] != ':')
@@ -256,9 +188,10 @@ public static class JsonValidator
 
             index++;
             col++;
-            ParseValue(text, ref index, ref line, ref col);
-            SkipWhitespace(text, ref index, ref line, ref col);
+            JsonNode value = BuildNode(text, ref index, ref line, ref col);
+            obj.Properties.Add(new KeyValuePair<string, JsonNode>(key, value));
 
+            SkipWhitespace(text, ref index, ref line, ref col);
             if (index < text.Length && text[index] == ',')
             {
                 index++;
@@ -270,7 +203,7 @@ public static class JsonValidator
             {
                 index++;
                 col++;
-                return;
+                return obj;
             }
 
             throw new JsonParseException("Expected ',' or '}' in object", line, col);
@@ -279,24 +212,26 @@ public static class JsonValidator
         throw new JsonParseException("Unterminated object: missing '}'", line, col);
     }
 
-    private static void ParseArray(string text, ref int index, ref int line, ref int col)
+    private static JsonArray BuildArray(string text, ref int index, ref int line, ref int col)
     {
         index++;
         col++;
         SkipWhitespace(text, ref index, ref line, ref col);
 
+        JsonArray arr = new JsonArray();
         if (index < text.Length && text[index] == ']')
         {
             index++;
             col++;
-            return;
+            return arr;
         }
 
         while (index < text.Length)
         {
-            ParseValue(text, ref index, ref line, ref col);
-            SkipWhitespace(text, ref index, ref line, ref col);
+            JsonNode item = BuildNode(text, ref index, ref line, ref col);
+            arr.Elements.Add(item);
 
+            SkipWhitespace(text, ref index, ref line, ref col);
             if (index < text.Length && text[index] == ',')
             {
                 index++;
@@ -308,7 +243,7 @@ public static class JsonValidator
             {
                 index++;
                 col++;
-                return;
+                return arr;
             }
 
             throw new JsonParseException("Expected ',' or ']' in array", line, col);
@@ -317,8 +252,9 @@ public static class JsonValidator
         throw new JsonParseException("Unterminated array: missing ']'", line, col);
     }
 
-    private static void ParseString(string text, ref int index, ref int line, ref int col)
+    private static string ExtractString(string text, ref int index, ref int line, ref int col)
     {
+        int start = index;
         index++;
         col++;
         bool escaped = false;
@@ -349,14 +285,14 @@ public static class JsonValidator
 
             if (c == '"')
             {
-                return;
+                return text.Substring(start, index - start);
             }
         }
 
         throw new JsonParseException("Unterminated string literal", line, col);
     }
 
-    private static void ParseNumber(string text, ref int index, ref int line, ref int col)
+    private static string ExtractNumber(string text, ref int index, ref int line, ref int col)
     {
         int start = index;
         if (text[index] == '-')
@@ -376,37 +312,174 @@ public static class JsonValidator
         {
             throw new JsonParseException($"Invalid number '{numStr}'", line, col);
         }
+
+        return numStr;
     }
 
-    private static void ParseBoolean(string text, ref int index, ref int line, ref int col)
+    private static string ExtractBoolean(string text, ref int index, ref int line, ref int col)
     {
         if (index + 4 <= text.Length && text.Substring(index, 4) == "true")
         {
             index += 4;
             col += 4;
-            return;
+            return "true";
         }
 
         if (index + 5 <= text.Length && text.Substring(index, 5) == "false")
         {
             index += 5;
             col += 5;
-            return;
+            return "false";
         }
 
         throw new JsonParseException("Invalid boolean value", line, col);
     }
 
-    private static void ParseNull(string text, ref int index, ref int line, ref int col)
+    private static string ExtractNull(string text, ref int index, ref int line, ref int col)
     {
         if (index + 4 <= text.Length && text.Substring(index, 4) == "null")
         {
             index += 4;
             col += 4;
-            return;
+            return "null";
         }
 
         throw new JsonParseException("Invalid null value", line, col);
+    }
+
+    private abstract class JsonNode
+    {
+        public abstract void Format(StringBuilder sb, int indent);
+    }
+
+    private class JsonPrimitive : JsonNode
+    {
+        public string RawText { get; }
+
+        public JsonPrimitive(string rawText)
+        {
+            RawText = rawText;
+        }
+
+        public override void Format(StringBuilder sb, int indent)
+        {
+            sb.Append(RawText);
+        }
+    }
+
+    private class JsonObject : JsonNode
+    {
+        public List<KeyValuePair<string, JsonNode>> Properties { get; } = new List<KeyValuePair<string, JsonNode>>();
+
+        public override void Format(StringBuilder sb, int indent)
+        {
+            if (Properties.Count == 0)
+            {
+                sb.Append("{}");
+                return;
+            }
+
+            sb.Append("{\n");
+            int nextIndent = indent + 1;
+            for (int i = 0; i < Properties.Count; i++)
+            {
+                KeyValuePair<string, JsonNode> prop = Properties[i];
+                AppendIndent(sb, nextIndent);
+                sb.Append(prop.Key);
+                sb.Append(": ");
+                prop.Value.Format(sb, nextIndent);
+
+                if (i < Properties.Count - 1)
+                {
+                    sb.Append(',');
+                }
+                sb.Append('\n');
+            }
+
+            AppendIndent(sb, indent);
+            sb.Append('}');
+        }
+    }
+
+    private class JsonArray : JsonNode
+    {
+        public List<JsonNode> Elements { get; } = new List<JsonNode>();
+
+        public bool CanFormatInline()
+        {
+            if (Elements.Count == 0)
+            {
+                return true;
+            }
+
+            int totalLength = 2;
+            for (int i = 0; i < Elements.Count; i++)
+            {
+                if (Elements[i] is not JsonPrimitive prim)
+                {
+                    return false;
+                }
+
+                if (prim.RawText.IndexOf('\n') >= 0 || prim.RawText.IndexOf('\r') >= 0)
+                {
+                    return false;
+                }
+
+                totalLength += prim.RawText.Length;
+                if (i < Elements.Count - 1)
+                {
+                    totalLength += 2;
+                }
+
+                if (totalLength > MaxInlineArrayLength)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        public override void Format(StringBuilder sb, int indent)
+        {
+            if (Elements.Count == 0)
+            {
+                sb.Append("[]");
+                return;
+            }
+
+            if (CanFormatInline())
+            {
+                sb.Append('[');
+                for (int i = 0; i < Elements.Count; i++)
+                {
+                    if (i > 0)
+                    {
+                        sb.Append(", ");
+                    }
+                    Elements[i].Format(sb, indent);
+                }
+                sb.Append(']');
+                return;
+            }
+
+            sb.Append("[\n");
+            int nextIndent = indent + 1;
+            for (int i = 0; i < Elements.Count; i++)
+            {
+                AppendIndent(sb, nextIndent);
+                Elements[i].Format(sb, nextIndent);
+
+                if (i < Elements.Count - 1)
+                {
+                    sb.Append(',');
+                }
+                sb.Append('\n');
+            }
+
+            AppendIndent(sb, indent);
+            sb.Append(']');
+        }
     }
 
     private class JsonParseException : Exception
