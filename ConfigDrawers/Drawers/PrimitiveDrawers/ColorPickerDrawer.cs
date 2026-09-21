@@ -327,17 +327,18 @@ public static class ColorPickerDrawer
         lblLE.preferredWidth = 10f;
         lblLE.flexibleWidth = 0f;
 
-        var textObj = new GameObject("Text", typeof(RectTransform));
+        GameObject textObj = new("Text", typeof(RectTransform));
+        textObj.SetActive(false);
         textObj.transform.SetParent(fill, false);
-        var textRT = textObj.GetComponent<RectTransform>();
+        RectTransform textRT = textObj.GetComponent<RectTransform>();
         textRT.sizeDelta = new Vector2(28f, 20f);
-        var textLE = textObj.AddComponent<LayoutElement>();
+        LayoutElement textLE = textObj.AddComponent<LayoutElement>();
         textLE.minWidth = 28f;
         textLE.preferredWidth = 28f;
         textLE.flexibleWidth = 0f;
 
-        var textTmp = textObj.AddComponent<TextMeshProUGUI>();
-        var monoFont = UiFactory.ResolveTerminalFont() ?? UiFactory.ResolveFont();
+        TextMeshProUGUI textTmp = textObj.AddComponent<TextMeshProUGUI>();
+        TMP_FontAsset? monoFont = UiFactory.ResolveTerminalFont() ?? UiFactory.ResolveFont();
         if (monoFont != null)
         {
             textTmp.font = monoFont;
@@ -351,8 +352,9 @@ public static class ColorPickerDrawer
         textTmp.alignment = TextAlignmentOptions.Center;
         textTmp.textWrappingMode = TextWrappingModes.NoWrap;
         textTmp.richText = false;
+        textObj.SetActive(true);
 
-        var input = boxObj.AddComponent<TMP_InputField>();
+        TMP_InputField input = boxObj.AddComponent<TMP_InputField>();
         input.textComponent = textTmp;
         input.textViewport = textRT;
         input.targetGraphic = boxObj.GetComponent<Image>();
@@ -405,17 +407,18 @@ public static class ColorPickerDrawer
         lblLE.preferredWidth = 10f;
         lblLE.flexibleWidth = 0f;
 
-        var textObj = new GameObject("Text", typeof(RectTransform));
+        GameObject textObj = new("Text", typeof(RectTransform));
+        textObj.SetActive(false);
         textObj.transform.SetParent(fill, false);
-        var textRT = textObj.GetComponent<RectTransform>();
+        RectTransform textRT = textObj.GetComponent<RectTransform>();
         textRT.sizeDelta = new Vector2(72f, 20f);
-        var textLE = textObj.AddComponent<LayoutElement>();
+        LayoutElement textLE = textObj.AddComponent<LayoutElement>();
         textLE.minWidth = 72f;
         textLE.preferredWidth = 72f;
         textLE.flexibleWidth = 0f;
 
-        var textTmp = textObj.AddComponent<TextMeshProUGUI>();
-        var monoFont = UiFactory.ResolveTerminalFont() ?? UiFactory.ResolveFont();
+        TextMeshProUGUI textTmp = textObj.AddComponent<TextMeshProUGUI>();
+        TMP_FontAsset? monoFont = UiFactory.ResolveTerminalFont() ?? UiFactory.ResolveFont();
         if (monoFont != null)
         {
             textTmp.font = monoFont;
@@ -429,8 +432,9 @@ public static class ColorPickerDrawer
         textTmp.alignment = TextAlignmentOptions.Center;
         textTmp.textWrappingMode = TextWrappingModes.NoWrap;
         textTmp.richText = false;
+        textObj.SetActive(true);
 
-        var input = boxObj.AddComponent<TMP_InputField>();
+        TMP_InputField input = boxObj.AddComponent<TMP_InputField>();
         input.textComponent = textTmp;
         input.textViewport = textRT;
         input.targetGraphic = boxObj.GetComponent<Image>();

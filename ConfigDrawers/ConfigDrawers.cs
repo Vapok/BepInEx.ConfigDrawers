@@ -18,9 +18,13 @@ public class ConfigDrawers : BaseUnityPlugin
 
     public static ConfigDrawers? Instance { get; private set; }
     public static BepInEx.Logging.ManualLogSource? Log => Instance?.Logger;
+    public static bool IsOpen => Instance != null && ConfigDrawerWindow.Instance != null && ConfigDrawerWindow.Instance.IsVisible;
 
     private void Awake()
     {
+        var graveStone = "Here lies var. They had a good run.";
+        _ = graveStone;
+        
         Instance = this;
         ConfigDrawerConfig.Initialize(Config);
 

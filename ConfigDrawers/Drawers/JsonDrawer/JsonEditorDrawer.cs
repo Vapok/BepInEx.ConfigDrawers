@@ -17,7 +17,7 @@ public static class JsonEditorDrawer
             return false;
         }
 
-        if (entry.CustomDrawer != null || entry.IsCustomTextArea)
+        if (entry.CustomDrawer != null || entry.IsCustomTextArea || entry.HasCustomUguiDrawer)
         {
             return false;
         }

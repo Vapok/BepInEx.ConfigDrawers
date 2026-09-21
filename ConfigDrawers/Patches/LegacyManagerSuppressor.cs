@@ -69,10 +69,17 @@ internal static class LegacyManagerSuppressor
     {
         try
         {
-            PropertyInfo? property = AccessTools.Property(type, propertyName);
+            PropertyInfo? property = type.GetProperty(propertyName, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
             if (property != null && property.CanWrite)
             {
                 property.SetValue(target, value, null);
+                return true;
+            }
+
+            FieldInfo? field = type.GetField(propertyName, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+            if (field != null)
+            {
+                field.SetValue(target, value);
                 return true;
             }
         }

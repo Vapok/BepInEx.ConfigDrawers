@@ -17,6 +17,7 @@ public class LegacyImguiBridge : MonoBehaviour, IBeginDragHandler, IDragHandler,
     private LayoutElement? _layoutElement;
     private float _currentHeight;
     private float _lastScale = 1f;
+    private bool _isAcceptingHotkeyInput;
 
     private static readonly PropertyInfo? _topLevelProp = typeof(GUILayoutUtility).GetProperty("topLevel", BindingFlags.NonPublic | BindingFlags.Static);
     private static readonly Type? _groupType = typeof(GUILayoutUtility).Assembly.GetType("UnityEngine.GUILayoutGroup");
@@ -458,7 +459,19 @@ public class LegacyImguiBridge : MonoBehaviour, IBeginDragHandler, IDragHandler,
 
         try
         {
-            entry.CustomDrawer(entry.ConfigEntry);
+            if (entry.CustomHotkeyDrawer != null)
+            {
+                object[] args = new object[] { entry.ConfigEntry, _isAcceptingHotkeyInput };
+                entry.CustomHotkeyDrawer.DynamicInvoke(args);
+                if (args[1] is bool accepting)
+                {
+                    _isAcceptingHotkeyInput = accepting;
+                }
+            }
+            else if (entry.CustomDrawer != null)
+            {
+                entry.CustomDrawer(entry.ConfigEntry);
+            }
 
             if (Event.current.type == EventType.Repaint)
             {

@@ -37,12 +37,25 @@ public class SettingEntry
     public Color EntryColor { get; private set; } = Color.white;
     public Color DescriptionColor { get; private set; } = Color.white;
     public Action<ConfigEntryBase>? CustomDrawer { get; private set; }
+    public Delegate? CustomHotkeyDrawer { get; private set; }
+    public Delegate? ObjToStr { get; private set; }
+    public Delegate? StrToObj { get; private set; }
+    public Delegate? RawCustomUguiDrawer { get; private set; }
+    public bool HasCustomUguiDrawer => RawCustomUguiDrawer != null;
     public bool IsCustomTextArea { get; private set; }
     public AcceptableValueBase? AcceptableValues => ConfigEntry.Description.AcceptableValues;
     public KeyValuePair<object, object>? RangeBounds { get; private set; }
     public object[]? AcceptableValuesList { get; private set; }
     public Func<bool>? DynamicBrowsability { get; private set; }
     public bool IsCurrentlyBrowsable => Browsable && (DynamicBrowsability == null || DynamicBrowsability());
+
+    public void InvokeCustomUguiDrawer(BepInEx.ConfigDrawers.Drawers.UguiScope.UguiDrawerScope scope)
+    {
+        if (RawCustomUguiDrawer != null)
+        {
+            BepInEx.ConfigDrawers.Drawers.UguiScope.DuckScopeProxy.InvokeScopeDelegate(RawCustomUguiDrawer, scope, ConfigEntry);
+        }
+    }
 
     public string EditBuffer { get; set; } = string.Empty;
     public bool IsDirty { get; private set; }
@@ -171,8 +184,8 @@ public class SettingEntry
 
         _cmaTagObject = tag;
 
-        var fields = tagType.GetFields(BindingFlags.Instance | BindingFlags.Public);
-        var properties = tagType.GetProperties(BindingFlags.Instance | BindingFlags.Public);
+        var fields = tagType.GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+        var properties = tagType.GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
 
         foreach (var prop in properties)
         {
@@ -261,6 +274,26 @@ public class SettingEntry
                         }
                     };
                     break;
+                case "CustomUguiDrawer":
+                case "CustomDrawerUGUI":
+                case "CustomDrawerUgui":
+                    if (value is Delegate uDel)
+                    {
+                        RawCustomUguiDrawer = uDel;
+                    }
+                    break;
+                case nameof(CustomHotkeyDrawer) when value is Delegate chd:
+                case "CustomHotkeyDrawer" when value is Delegate chdFallback:
+                    CustomHotkeyDrawer = (Delegate)value;
+                    break;
+                case nameof(ObjToStr) when value is Delegate o2s:
+                case "ObjToStr" when value is Delegate o2sFallback:
+                    ObjToStr = (Delegate)value;
+                    break;
+                case nameof(StrToObj) when value is Delegate s2o:
+                case "StrToObj" when value is Delegate s2oFallback:
+                    StrToObj = (Delegate)value;
+                    break;
                 case "browsability" when value is Func<bool> fb:
                     DynamicBrowsability = fb;
                     break;
@@ -268,7 +301,7 @@ public class SettingEntry
         }
         catch (Exception ex)
         {
-            ConfigDrawers.Log?.LogDebug($"[ConfigDrawers] Ignored tag {name} on {Key}: {ex.Message}");
+            ConfigDrawers.Log?.LogDebug($"[ConfigDrawers] Error reading tag member {name} on {Key}: {ex.Message}");
         }
     }
 
@@ -354,10 +387,32 @@ public class SettingEntry
         }
     }
 
+    public string FormatValue(object? value)
+    {
+        if (value == null)
+        {
+            return string.Empty;
+        }
+
+        if (ObjToStr != null)
+        {
+            try
+            {
+                object? formatted = ObjToStr.DynamicInvoke(value);
+                return formatted != null ? Convert.ToString(formatted, CultureInfo.InvariantCulture) ?? string.Empty : string.Empty;
+            }
+            catch (Exception ex)
+            {
+                ConfigDrawers.Log?.LogDebug($"[ConfigDrawers] ObjToStr exception on {Key}: {ex.Message}");
+            }
+        }
+
+        return Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty;
+    }
+
     public void ResetBuffer()
     {
-        var boxed = ConfigEntry.BoxedValue;
-        EditBuffer = boxed != null ? Convert.ToString(boxed, CultureInfo.InvariantCulture) ?? string.Empty : string.Empty;
+        EditBuffer = FormatValue(ConfigEntry.BoxedValue);
         IsDirty = false;
         IsValid = true;
         ValidationMessage = null;
@@ -366,7 +421,7 @@ public class SettingEntry
     public void UpdateBuffer(string newText)
     {
         EditBuffer = newText;
-        var currentText = Convert.ToString(ConfigEntry.BoxedValue, CultureInfo.InvariantCulture) ?? string.Empty;
+        string currentText = FormatValue(ConfigEntry.BoxedValue);
         IsDirty = EditBuffer != currentText;
         ValidateBuffer();
     }
@@ -375,6 +430,14 @@ public class SettingEntry
     {
         try
         {
+            if (StrToObj != null)
+            {
+                StrToObj.DynamicInvoke(EditBuffer);
+                IsValid = true;
+                ValidationMessage = null;
+                return;
+            }
+
             if (SettingType == typeof(string))
             {
                 IsValid = true;
@@ -389,7 +452,7 @@ public class SettingEntry
         catch (Exception ex)
         {
             IsValid = false;
-            ValidationMessage = ex.Message;
+            ValidationMessage = ex.InnerException?.Message ?? ex.Message;
         }
     }
 
@@ -402,9 +465,17 @@ public class SettingEntry
 
         try
         {
-            var parsedValue = SettingType == typeof(string) 
-                ? EditBuffer 
-                : Convert.ChangeType(EditBuffer, SettingType, CultureInfo.InvariantCulture);
+            object? parsedValue;
+            if (StrToObj != null)
+            {
+                parsedValue = StrToObj.DynamicInvoke(EditBuffer);
+            }
+            else
+            {
+                parsedValue = SettingType == typeof(string) 
+                    ? EditBuffer 
+                    : Convert.ChangeType(EditBuffer, SettingType, CultureInfo.InvariantCulture);
+            }
 
             ConfigEntry.BoxedValue = parsedValue;
             IsDirty = false;
@@ -414,7 +485,7 @@ public class SettingEntry
         catch (Exception ex)
         {
             IsValid = false;
-            ValidationMessage = ex.Message;
+            ValidationMessage = ex.InnerException?.Message ?? ex.Message;
             return false;
         }
     }

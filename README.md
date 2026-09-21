@@ -35,6 +35,7 @@
 - **Hotkey Rebinding**: Click the hotkey button in the header and press any key to rebind the menu toggle shortcut in-game.
 - **ServerSync Integration**: Automatically identifies server-enforced configurations and displays synchronization status indicators.
 - **Legacy IMGUI Compatibility**: Automatically suppresses conflicting legacy `ConfigurationManager.dll` hotkeys while continuing to render legacy custom drawer delegates inside the modern drawer.
+- **Custom uGUI & IMGUI Drawers**: Native procedural builder API (`CustomUguiDrawer`) for mod configuration interfaces with legacy IMGUI fallback. See [Custom Drawers Guide](Docs/CUSTOM_DRAWERS.md).
 
 ---
 

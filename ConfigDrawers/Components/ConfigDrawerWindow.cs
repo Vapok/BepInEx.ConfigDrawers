@@ -31,6 +31,11 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
     private TextMeshProUGUI? _rebindButtonText;
     private TextMeshProUGUI? _fontSizeButtonText;
     private TextMeshProUGUI? _shortcutHintLabel;
+    private GameObject? _advancedToggleBtn;
+    private TextMeshProUGUI? _advancedButtonText;
+    private GameObject? _dockLeftBtn;
+    private GameObject? _dockRightBtn;
+    private GameObject? _dockFloatBtn;
 
     private DockPosition _currentDock = DockPosition.Left;
     private Vector2 _floatingPosition = Vector2.zero;
@@ -38,11 +43,14 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
     private PluginSettingsGroup? _activePlugin;
     private readonly HashSet<string> _expandedCategories = new();
 
+    private GameObject? _eventSystemObj;
+    private EventSystem? _dormantEventSystem;
+
     private void Awake()
     {
         Instance = this;
         DontDestroyOnLoad(gameObject);
-        EnsureEventSystem();
+        InitializeEventSystem();
     }
 
     private void EnsureWindowBuilt()
@@ -82,6 +90,11 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
             UpdateKeybindDisplays();
         };
 
+        ConfigDrawerConfig.HideAdvancedByDefault.SettingChanged += (_, _) =>
+        {
+            UpdateAdvancedButton();
+        };
+
         UiFactory.RefreshAllFonts(gameObject);
     }
 
@@ -112,14 +125,57 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
         }
     }
 
-    private void EnsureEventSystem()
+    private void InitializeEventSystem()
     {
-#pragma warning disable CS0618
-        if (FindObjectOfType<EventSystem>() == null)
-#pragma warning restore CS0618
+        _eventSystemObj = new GameObject("ConfigDrawer_EventSystem", typeof(EventSystem), typeof(StandaloneInputModule));
+        DontDestroyOnLoad(_eventSystemObj);
+        _eventSystemObj.SetActive(false);
+    }
+
+    private void ActivateEventSystem()
+    {
+        if (_eventSystemObj == null)
         {
-            var eventObj = new GameObject("ConfigDrawer_EventSystem", typeof(EventSystem), typeof(StandaloneInputModule));
-            DontDestroyOnLoad(eventObj);
+            InitializeEventSystem();
+        }
+
+        EventSystem? active = EventSystem.current;
+        if (active == null)
+        {
+            EventSystem[] all = FindObjectsByType<EventSystem>(FindObjectsSortMode.None);
+            for (int i = 0; i < all.Length; i++)
+            {
+                if (all[i] != null && all[i].gameObject != _eventSystemObj && all[i].enabled)
+                {
+                    active = all[i];
+                    break;
+                }
+            }
+        }
+
+        if (active != null && active.gameObject != _eventSystemObj)
+        {
+            _dormantEventSystem = active;
+            _dormantEventSystem.enabled = false;
+        }
+
+        if (_eventSystemObj != null)
+        {
+            _eventSystemObj.SetActive(true);
+        }
+    }
+
+    private void DeactivateEventSystem()
+    {
+        if (_eventSystemObj != null)
+        {
+            _eventSystemObj.SetActive(false);
+        }
+
+        if (_dormantEventSystem != null)
+        {
+            _dormantEventSystem.enabled = true;
+            _dormantEventSystem = null;
         }
     }
 
@@ -140,7 +196,7 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
         titleArea.transform.SetParent(target, false);
         var titleRT = titleArea.GetComponent<RectTransform>();
         titleRT.anchorMin = new Vector2(0f, 0f);
-        titleRT.anchorMax = new Vector2(0.32f, 1f);
+        titleRT.anchorMax = new Vector2(0.24f, 1f);
         titleRT.offsetMin = new Vector2(8f, 0f);
         titleRT.offsetMax = Vector2.zero;
 
@@ -154,7 +210,7 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
         var controlsRow = new GameObject("Controls", typeof(RectTransform), typeof(HorizontalLayoutGroup));
         controlsRow.transform.SetParent(target, false);
         var controlsRT = controlsRow.GetComponent<RectTransform>();
-        controlsRT.anchorMin = new Vector2(0.32f, 0f);
+        controlsRT.anchorMin = new Vector2(0.24f, 0f);
         controlsRT.anchorMax = new Vector2(1f, 1f);
         controlsRT.offsetMin = Vector2.zero;
         controlsRT.offsetMax = new Vector2(-4f, 0f);
@@ -181,17 +237,67 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
         _fontSizeButtonText = fontBtn.GetComponentInChildren<TextMeshProUGUI>();
         ButtonTooltipHandler.Attach(fontBtn, "[ UI SCALE ]", "Cycle font size and spacing presets (Small, Normal, Large).");
 
-        var leftBtn = UiFactory.CreateCyberButton(controlsRow.transform, "DockLeftBtn", "Left", () => ApplyDockPosition(DockPosition.Left), CyberPalette.ColorBorderSubtle, CyberPalette.ColorTextMain, 36f, 22f);
-        ButtonTooltipHandler.Attach(leftBtn, "[ DOCK LEFT ]", "Dock and pin the window to the left side of the screen.");
+        _advancedToggleBtn = UiFactory.CreateCyberButton(controlsRow.transform, "AdvBtn", GetAdvancedButtonText(), OnToggleAdvancedSettings, CyberPalette.ColorBorderSubtle, CyberPalette.ColorTextMuted, 56f, 22f);
+        _advancedButtonText = _advancedToggleBtn.GetComponentInChildren<TextMeshProUGUI>();
+        ButtonTooltipHandler.Attach(_advancedToggleBtn, "[ ADVANCED SETTINGS ]", "Toggle visibility of advanced configuration settings.");
+        UpdateAdvancedButton();
 
-        var rightBtn = UiFactory.CreateCyberButton(controlsRow.transform, "DockRightBtn", "Right", () => ApplyDockPosition(DockPosition.Right), CyberPalette.ColorBorderSubtle, CyberPalette.ColorTextMain, 40f, 22f);
-        ButtonTooltipHandler.Attach(rightBtn, "[ DOCK RIGHT ]", "Dock and pin the window to the right side of the screen.");
+        _dockLeftBtn = UiFactory.CreateCyberButton(controlsRow.transform, "DockLeftBtn", "Left", () => ApplyDockPosition(DockPosition.Left), CyberPalette.ColorBorderSubtle, CyberPalette.ColorTextMain, 36f, 22f);
+        ButtonTooltipHandler.Attach(_dockLeftBtn, "[ DOCK LEFT ]", "Dock and pin the window to the left side of the screen.");
 
-        var floatBtn = UiFactory.CreateCyberButton(controlsRow.transform, "DetachBtn", "Float", () => ApplyDockPosition(DockPosition.Floating), CyberPalette.ColorBorderSubtle, CyberPalette.ColorTextMain, 40f, 22f);
-        ButtonTooltipHandler.Attach(floatBtn, "[ FLOAT WINDOW ]", "Detach and float the window. Freely drag anywhere.");
+        _dockRightBtn = UiFactory.CreateCyberButton(controlsRow.transform, "DockRightBtn", "Right", () => ApplyDockPosition(DockPosition.Right), CyberPalette.ColorBorderSubtle, CyberPalette.ColorTextMain, 40f, 22f);
+        ButtonTooltipHandler.Attach(_dockRightBtn, "[ DOCK RIGHT ]", "Dock and pin the window to the right side of the screen.");
+
+        _dockFloatBtn = UiFactory.CreateCyberButton(controlsRow.transform, "DetachBtn", "Float", () => ApplyDockPosition(DockPosition.Floating), CyberPalette.ColorBorderSubtle, CyberPalette.ColorTextMain, 40f, 22f);
+        ButtonTooltipHandler.Attach(_dockFloatBtn, "[ FLOAT WINDOW ]", "Detach and float the window. Freely drag anywhere.");
+
+        UpdateDockButtons(_currentDock);
 
         var closeBtn = UiFactory.CreateCyberButton(controlsRow.transform, "CloseBtn", "X", () => SetVisible(false), CyberPalette.ColorWarningAmber, CyberPalette.ColorTextMain, 24f, 22f);
         ButtonTooltipHandler.Attach(closeBtn, "[ CLOSE ]", "Close the Config Drawers window.");
+    }
+
+    private string GetAdvancedButtonText()
+    {
+        return ConfigDrawerConfig.HideAdvancedByDefault.Value ? "Adv: Off" : "Adv: On";
+    }
+
+    private void OnToggleAdvancedSettings()
+    {
+        bool next = !ConfigDrawerConfig.HideAdvancedByDefault.Value;
+        ConfigDrawerConfig.HideAdvancedByDefault.Value = next;
+        UpdateAdvancedButton();
+
+        if (_activePlugin != null)
+        {
+            ShowPluginSettings(_activePlugin);
+        }
+        else
+        {
+            PopulatePlugins();
+        }
+    }
+
+    private void UpdateAdvancedButton()
+    {
+        if (_advancedButtonText != null)
+        {
+            _advancedButtonText.text = GetAdvancedButtonText();
+            _advancedButtonText.color = ConfigDrawerConfig.HideAdvancedByDefault.Value
+                ? CyberPalette.ColorTextMuted
+                : CyberPalette.ColorIceBlueBright;
+        }
+
+        if (_advancedToggleBtn != null)
+        {
+            Image? img = _advancedToggleBtn.GetComponent<Image>();
+            if (img != null)
+            {
+                img.color = ConfigDrawerConfig.HideAdvancedByDefault.Value
+                    ? CyberPalette.ColorBorderSubtle
+                    : CyberPalette.ColorIceBlue;
+            }
+        }
     }
 
     private string GetFontSizeLabel()
@@ -378,6 +484,7 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
 
         if (visible)
         {
+            ActivateEventSystem();
             EnsureWindowBuilt();
             if (_drawerRootRT != null)
             {
@@ -395,7 +502,6 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
             }
 
             UnlockCursor();
-            TryPauseGameInput(true);
             UiFactory.RefreshAllFonts(gameObject);
         }
         else
@@ -407,7 +513,7 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
 
             HoverCardHandler.HideCard();
             StatusIconTooltipHandler.HideTooltip();
-            TryPauseGameInput(false);
+            DeactivateEventSystem();
         }
     }
 
@@ -541,16 +647,16 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
             Destroy(child.gameObject);
         }
 
-        var navRow = new GameObject("NavRow", typeof(RectTransform), typeof(HorizontalLayoutGroup));
+        GameObject navRow = new GameObject("NavRow", typeof(RectTransform), typeof(HorizontalLayoutGroup));
         navRow.transform.SetParent(_contentContainer, false);
-        var navRT = navRow.GetComponent<RectTransform>();
+        RectTransform navRT = navRow.GetComponent<RectTransform>();
         navRT.anchorMin = new Vector2(0f, 1f);
         navRT.anchorMax = new Vector2(1f, 1f);
         navRT.pivot = new Vector2(0.5f, 1f);
         navRT.anchoredPosition = Vector2.zero;
         navRT.sizeDelta = new Vector2(0f, 26f);
 
-        var hlg = navRow.GetComponent<HorizontalLayoutGroup>();
+        HorizontalLayoutGroup hlg = navRow.GetComponent<HorizontalLayoutGroup>();
         hlg.spacing = 6f;
         hlg.childAlignment = TextAnchor.MiddleCenter;
         hlg.childControlWidth = false;
@@ -560,14 +666,14 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
 
         UiFactory.CreateCyberButton(navRow.transform, "BackBtn", "◀ Back", PopulatePlugins, CyberPalette.ColorErrorRed, CyberPalette.ColorErrorRed, 65f, 22f);
 
-        var titleLabel = UiFactory.CreateLabel(navRow.transform, "ModHeader", $"<b>{plugin.ModName}</b> <color=#{ColorUtility.ToHtmlStringRGB(CyberPalette.ColorCyberTeal)}>v{plugin.Version}</color>", CyberPalette.ColorTextMain, 11f, TextAlignmentOptions.MidlineLeft);
-        var titleRT = titleLabel.GetComponent<RectTransform>();
+        TextMeshProUGUI titleLabel = UiFactory.CreateLabel(navRow.transform, "ModHeader", $"<b>{plugin.ModName}</b> <color=#{ColorUtility.ToHtmlStringRGB(CyberPalette.ColorCyberTeal)}>v{plugin.Version}</color>", CyberPalette.ColorTextMain, 11f, TextAlignmentOptions.MidlineLeft);
+        RectTransform titleRT = titleLabel.GetComponent<RectTransform>();
         titleRT.sizeDelta = new Vector2(230f, 24f);
 
         UiFactory.CreateCyberButton(navRow.transform, "ExpandBtn", "Expand", () =>
         {
-            var cats = plugin.GetFilteredCategories(_searchField?.text ?? string.Empty, !ConfigDrawerConfig.HideAdvancedByDefault.Value);
-            foreach (var c in cats)
+            IEnumerable<KeyValuePair<string, List<SettingEntry>>> cats = plugin.GetFilteredCategories(_searchField?.text ?? string.Empty, !ConfigDrawerConfig.HideAdvancedByDefault.Value);
+            foreach (KeyValuePair<string, List<SettingEntry>> c in cats)
             {
                 _expandedCategories.Add(c.Key);
             }
@@ -580,72 +686,84 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
             ShowPluginSettings(plugin);
         }, CyberPalette.ColorBorderSubtle, CyberPalette.ColorTextMuted, 60f, 22f);
 
-        CreateScrollArea(_contentContainer, out var listContainer);
+        CreateScrollArea(_contentContainer, out Transform listContainer);
 
-        var query = _searchField?.text ?? string.Empty;
-        var hasSearch = !string.IsNullOrEmpty(query.Trim());
-        var categories = plugin.GetFilteredCategories(query, !ConfigDrawerConfig.HideAdvancedByDefault.Value);
+        string query = _searchField?.text ?? string.Empty;
+        bool hasSearch = !string.IsNullOrEmpty(query.Trim());
+        IEnumerable<KeyValuePair<string, List<SettingEntry>>> categories = plugin.GetFilteredCategories(query, !ConfigDrawerConfig.HideAdvancedByDefault.Value);
 
-        foreach (var categoryGroup in categories)
+        foreach (KeyValuePair<string, List<SettingEntry>> categoryGroup in categories)
         {
-            var catKey = categoryGroup.Key;
-            var isExpanded = hasSearch || _expandedCategories.Contains(catKey);
+            string catKey = categoryGroup.Key;
+            List<SettingEntry> categorySettings = categoryGroup.Value;
+            bool isExpanded = hasSearch || _expandedCategories.Contains(catKey);
 
-            var catPanel = UiFactory.CreatePanel(listContainer, $"Cat_{catKey}", CyberPalette.ColorBorderSubtle, CyberPalette.ColorCardSurface, 1f);
-            var catLayout = catPanel.AddComponent<LayoutElement>();
+            GameObject catPanel = UiFactory.CreatePanel(listContainer, $"Cat_{catKey}", CyberPalette.ColorBorderSubtle, CyberPalette.ColorCardSurface, 1f);
+            LayoutElement catLayout = catPanel.AddComponent<LayoutElement>();
             catLayout.minHeight = 24f;
             catLayout.preferredHeight = 24f;
             catLayout.flexibleHeight = 0f;
             catLayout.flexibleWidth = 1f;
 
-            var fill = catPanel.transform.Find("Fill");
-            var target = fill != null ? fill : catPanel.transform;
+            Image catBorderImg = catPanel.GetComponent<Image>();
+            Transform? fill = catPanel.transform.Find("Fill");
+            Transform target = fill != null ? fill : catPanel.transform;
+            Image? fillImg = fill != null ? fill.GetComponent<Image>() : null;
 
-            var arrow = isExpanded ? "▼" : "▶";
-            var catLabel = UiFactory.CreateLabel(target, "CatTitle", $"{arrow}  {catKey.ToUpperInvariant()}  <color=#{ColorUtility.ToHtmlStringRGB(CyberPalette.ColorIceBlueBright)}>({categoryGroup.Value.Count})</color>", CyberPalette.ColorIceBlueBright, 10.5f, TextAlignmentOptions.MidlineLeft);
-            var catRT = catLabel.GetComponent<RectTransform>();
+            CyberHoverHandler catHover = catPanel.AddComponent<CyberHoverHandler>();
+            catHover.Init(catBorderImg, CyberPalette.ColorBorderSubtle, CyberPalette.ColorIceBlueBright, fillImg, CyberPalette.ColorCardSurface, CyberPalette.ColorVoidBlack);
+
+            string arrow = isExpanded ? "▼" : "▶";
+            TextMeshProUGUI catLabel = UiFactory.CreateLabel(target, "CatTitle", $"{arrow}  {catKey.ToUpperInvariant()}  <color=#{ColorUtility.ToHtmlStringRGB(CyberPalette.ColorIceBlueBright)}>({categorySettings.Count})</color>", CyberPalette.ColorIceBlueBright, 10.5f, TextAlignmentOptions.MidlineLeft);
+            RectTransform catRT = catLabel.GetComponent<RectTransform>();
             catRT.anchorMin = Vector2.zero;
             catRT.anchorMax = Vector2.one;
             catRT.offsetMin = new Vector2(8f, 0f);
             catRT.offsetMax = new Vector2(-8f, 0f);
 
-            var itemsContainer = new GameObject($"CatItems_{catKey}", typeof(RectTransform), typeof(VerticalLayoutGroup), typeof(ContentSizeFitter));
+            GameObject itemsContainer = new GameObject($"CatItems_{catKey}", typeof(RectTransform), typeof(VerticalLayoutGroup), typeof(ContentSizeFitter));
             itemsContainer.transform.SetParent(listContainer, false);
-            var itemsVlg = itemsContainer.GetComponent<VerticalLayoutGroup>();
+            VerticalLayoutGroup itemsVlg = itemsContainer.GetComponent<VerticalLayoutGroup>();
             itemsVlg.spacing = 3f;
             itemsVlg.childControlWidth = true;
             itemsVlg.childControlHeight = true;
             itemsVlg.childForceExpandWidth = true;
             itemsVlg.childForceExpandHeight = false;
 
-            var itemsCsf = itemsContainer.GetComponent<ContentSizeFitter>();
+            ContentSizeFitter itemsCsf = itemsContainer.GetComponent<ContentSizeFitter>();
             itemsCsf.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
 
-            var itemsLe = itemsContainer.AddComponent<LayoutElement>();
+            LayoutElement itemsLe = itemsContainer.AddComponent<LayoutElement>();
             itemsLe.flexibleWidth = 1f;
 
-            foreach (var setting in categoryGroup.Value)
+            if (isExpanded)
             {
-                DrawerDispatcher.DrawSetting(itemsContainer.transform, setting);
+                PopulateCategorySettings(itemsContainer.transform, categorySettings);
+                itemsContainer.SetActive(true);
             }
-
-            itemsContainer.SetActive(isExpanded);
+            else
+            {
+                itemsContainer.SetActive(false);
+            }
 
             Action toggleCat = () =>
             {
-                var nextState = !itemsContainer.activeSelf;
-                itemsContainer.SetActive(nextState);
+                bool nextState = !itemsContainer.activeSelf;
                 if (nextState)
                 {
                     _expandedCategories.Add(catKey);
+                    PopulateCategorySettings(itemsContainer.transform, categorySettings);
+                    itemsContainer.SetActive(true);
                 }
                 else
                 {
                     _expandedCategories.Remove(catKey);
+                    ClearCategorySettings(itemsContainer.transform);
+                    itemsContainer.SetActive(false);
                 }
 
-                var nextArrow = nextState ? "▼" : "▶";
-                catLabel.text = $"{nextArrow}  {catKey.ToUpperInvariant()}  <color=#{ColorUtility.ToHtmlStringRGB(CyberPalette.ColorIceBlueBright)}>({categoryGroup.Value.Count})</color>";
+                string nextArrow = nextState ? "▼" : "▶";
+                catLabel.text = $"{nextArrow}  {catKey.ToUpperInvariant()}  <color=#{ColorUtility.ToHtmlStringRGB(CyberPalette.ColorIceBlueBright)}>({categorySettings.Count})</color>";
 
                 if (listContainer is RectTransform lRT)
                 {
@@ -655,17 +773,38 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
 
             catLabel.raycastTarget = false;
 
-            var catClick = catPanel.AddComponent<ClickableBarHandler>();
+            ClickableBarHandler catClick = catPanel.AddComponent<ClickableBarHandler>();
             catClick.OnClick = toggleCat;
 
             if (fill != null)
             {
-                var fillClick = fill.gameObject.AddComponent<ClickableBarHandler>();
+                ClickableBarHandler fillClick = fill.gameObject.AddComponent<ClickableBarHandler>();
                 fillClick.OnClick = toggleCat;
             }
         }
 
         UiFactory.RefreshAllFonts(_contentContainer.gameObject);
+    }
+
+    private static void PopulateCategorySettings(Transform container, IReadOnlyList<SettingEntry> settings)
+    {
+        for (int i = 0; i < settings.Count; i++)
+        {
+            DrawerDispatcher.DrawSetting(container, settings[i]);
+        }
+        UiFactory.RefreshAllFonts(container.gameObject);
+    }
+
+    private static void ClearCategorySettings(Transform container)
+    {
+        for (int i = container.childCount - 1; i >= 0; i--)
+        {
+            Transform child = container.GetChild(i);
+            if (child != null)
+            {
+                UnityEngine.Object.Destroy(child.gameObject);
+            }
+        }
     }
 
     private void OnSearchChanged(string query)
@@ -813,9 +952,26 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
         }
     }
 
+    private void UpdateDockButtons(DockPosition position)
+    {
+        if (_dockLeftBtn != null)
+        {
+            _dockLeftBtn.SetActive(position != DockPosition.Left);
+        }
+        if (_dockRightBtn != null)
+        {
+            _dockRightBtn.SetActive(position != DockPosition.Right);
+        }
+        if (_dockFloatBtn != null)
+        {
+            _dockFloatBtn.SetActive(position != DockPosition.Floating);
+        }
+    }
+
     public void ApplyDockPosition(DockPosition position)
     {
         _currentDock = position;
+        UpdateDockButtons(position);
         if (_drawerRootRT == null)
         {
             return;
@@ -893,28 +1049,6 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
         Cursor.visible = true;
     }
 
-    private void TryPauseGameInput(bool pause)
-    {
-        try
-        {
-            var playerType = Type.GetType("Player, assembly_valheim");
-            if (playerType != null)
-            {
-                var takeInputMethod = playerType.GetMethod("TakeInput", BindingFlags.Instance | BindingFlags.Public);
-                var localProp = playerType.GetProperty("m_localPlayer", BindingFlags.Static | BindingFlags.Public);
-                var localPlayer = localProp?.GetValue(null, null);
-                if (localPlayer != null && takeInputMethod != null)
-                {
-                    // Soft hook player input when active in Valheim
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            ConfigDrawers.Log?.LogDebug($"[ConfigDrawers] Non-Valheim host input check: {ex.Message}");
-        }
-    }
-
     private void Update()
     {
         if (IsVisible)
@@ -929,5 +1063,4 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
             }
         }
     }
-
 }

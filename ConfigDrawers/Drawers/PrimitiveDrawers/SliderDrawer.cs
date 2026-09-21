@@ -35,23 +35,22 @@ public static class SliderDrawer
 
         Slider? sliderComp = null;
         TMP_InputField? inputField = null;
-        TextMeshProUGUI? percentLabel = null;
         var tickImages = new List<(float Value, Image Image)>();
         var isUpdatingInternal = false;
 
         void RefreshDisplay(float val)
         {
-            if (entry.ShowRangeAsPercent)
+            if (inputField != null)
             {
-                if (percentLabel != null)
+                if (entry.ShowRangeAsPercent)
                 {
-                    var pct = (max - min) > 0.0001f ? (val - min) / (max - min) : 0f;
-                    percentLabel.text = $"{pct:P0}";
+                    float pct = (max - min) > 0.0001f ? (val - min) / (max - min) : 0f;
+                    inputField.text = $"{pct:P0}";
                 }
-            }
-            else if (inputField != null)
-            {
-                inputField.text = isInteger ? $"{Mathf.RoundToInt(val)}" : $"{val:0.##}";
+                else
+                {
+                    inputField.text = isInteger ? $"{Mathf.RoundToInt(val)}" : $"{val:0.##}";
+                }
             }
 
             foreach (var (tickVal, tickImg) in tickImages)
@@ -77,58 +76,63 @@ public static class SliderDrawer
             isUpdatingInternal = false;
         }, ControlWidth);
 
-        var currentVal = GetCurrentValue(entry);
+        float currentVal = GetCurrentValue(entry);
 
-        if (entry.ShowRangeAsPercent)
-        {
-            var pctObj = new GameObject("PercentLabel", typeof(RectTransform));
-            pctObj.transform.SetParent(valueArea, false);
-            var pctRT = pctObj.GetComponent<RectTransform>();
-            pctRT.sizeDelta = new Vector2(InputWidth, 22f);
-            var pctLe = pctObj.AddComponent<LayoutElement>();
-            pctLe.minWidth = InputWidth;
-            pctLe.preferredWidth = InputWidth;
-            pctLe.flexibleWidth = 0f;
+        string initialText = entry.ShowRangeAsPercent
+            ? $"{(max - min > 0.0001f ? (currentVal - min) / (max - min) : 0f):P0}"
+            : (isInteger ? $"{Mathf.RoundToInt(currentVal)}" : $"{currentVal:0.##}");
 
-            percentLabel = UiFactory.CreateLabel(pctObj.transform, "Text", "", CyberPalette.ColorIceBlueBright, 9.5f, TextAlignmentOptions.Center);
-            percentLabel.raycastTarget = false;
-        }
-        else
+        (GameObject inRoot, TMP_InputField inField) = UiFactory.CreateInputField(valueArea, "ValueInput", initialText, text =>
         {
-            var (inRoot, inField) = UiFactory.CreateInputField(valueArea, "ValueInput", isInteger ? $"{Mathf.RoundToInt(currentVal)}" : $"{currentVal:0.##}", text =>
+            if (isUpdatingInternal)
             {
-                if (isUpdatingInternal)
+                return;
+            }
+
+            string clean = text.Trim();
+            bool isPct = clean.EndsWith("%");
+            if (isPct)
+            {
+                clean = clean.TrimEnd('%').Trim();
+            }
+
+            if (float.TryParse(clean, NumberStyles.Any, CultureInfo.InvariantCulture, out float parsed))
+            {
+                if (entry.ShowRangeAsPercent)
                 {
-                    return;
+                    if (isPct || parsed > 1f)
+                    {
+                        parsed = min + (parsed / 100f) * (max - min);
+                    }
+                }
+                parsed = Mathf.Clamp(parsed, min, max);
+                if (isInteger)
+                {
+                    parsed = Mathf.RoundToInt(parsed);
+                }
+                else
+                {
+                    parsed = (float)Math.Round(parsed, 4);
                 }
 
-                if (float.TryParse(text, NumberStyles.Any, CultureInfo.InvariantCulture, out var parsed))
+                isUpdatingInternal = true;
+                if (sliderComp != null)
                 {
-                    parsed = Mathf.Clamp(parsed, min, max);
-                    if (isInteger)
-                    {
-                        parsed = Mathf.RoundToInt(parsed);
-                    }
-                    else
-                    {
-                        parsed = (float)Math.Round(parsed, 3);
-                    }
-
-                    isUpdatingInternal = true;
-                    if (sliderComp != null)
-                    {
-                        sliderComp.value = parsed;
-                    }
-                    entry.SetValue(Convert.ChangeType(parsed, entry.SettingType, CultureInfo.InvariantCulture));
-                    RefreshDisplay(parsed);
-                    isUpdatingInternal = false;
+                    sliderComp.value = parsed;
                 }
-            }, InputWidth, 20f, "");
+                entry.SetValue(Convert.ChangeType(parsed, entry.SettingType, CultureInfo.InvariantCulture));
+                RefreshDisplay(parsed);
+                isUpdatingInternal = false;
+            }
+            else
+            {
+                RefreshDisplay(GetCurrentValue(entry));
+            }
+        }, InputWidth, 20f, "");
 
-            inputField = inField;
-            inputField.interactable = entry.CanEdit;
-            inputField.contentType = isInteger ? TMP_InputField.ContentType.IntegerNumber : TMP_InputField.ContentType.DecimalNumber;
-        }
+        inputField = inField;
+        inputField.interactable = entry.CanEdit;
+        inputField.contentType = isInteger ? TMP_InputField.ContentType.IntegerNumber : TMP_InputField.ContentType.Standard;
 
         sliderComp = CreateSliderComponent(valueArea, min, max, isInteger, currentVal, entry.CanEdit, tickImages, newVal =>
         {

@@ -115,18 +115,30 @@ public class ButtonTooltipHandler : MonoBehaviour, IPointerEnterHandler, IPointe
         }
 
         string headerFormatted = $"<color=#{ColorUtility.ToHtmlStringRGB(CyberPalette.ColorIceBlueBright)}><b>{_headerText}</b></color>";
-        _text.text = string.IsNullOrEmpty(_headerText)
-            ? $"<color=#c8dbee>{_bodyText}</color>"
-            : $"{headerFormatted}\n<color=#c8dbee>{_bodyText}</color>";
+        if (string.IsNullOrEmpty(_bodyText))
+        {
+            _text.text = headerFormatted;
+        }
+        else if (string.IsNullOrEmpty(_headerText))
+        {
+            _text.text = $"<color=#c8dbee>{_bodyText}</color>";
+        }
+        else
+        {
+            _text.text = $"{headerFormatted}\n<color=#c8dbee>{_bodyText}</color>";
+        }
 
         _text.ForceMeshUpdate();
 
         Vector2 preferred = _text.GetPreferredValues(TooltipTargetWidth - 16f, 1000f);
         float width = Mathf.Min(TooltipTargetWidth, preferred.x + 20f);
-        float height = preferred.y + 14f;
+        float height = preferred.y + 12f;
+
+        float effectiveMinWidth = string.IsNullOrEmpty(_bodyText) ? 50f : TooltipMinWidth;
+        float effectiveMinHeight = string.IsNullOrEmpty(_bodyText) ? 22f : TooltipMinHeight;
 
         RectTransform rt = _tooltipRoot.GetComponent<RectTransform>();
-        rt.sizeDelta = new Vector2(Mathf.Max(width, TooltipMinWidth), Mathf.Max(height, TooltipMinHeight));
+        rt.sizeDelta = new Vector2(Mathf.Max(width, effectiveMinWidth), Mathf.Max(height, effectiveMinHeight));
 
         RectTransform buttonRT = (RectTransform)transform;
         Vector3[] corners = new Vector3[4];
@@ -206,6 +218,7 @@ public class ButtonTooltipHandler : MonoBehaviour, IPointerEnterHandler, IPointe
         fillImg.raycastTarget = false;
 
         GameObject textGo = new GameObject("Text", typeof(RectTransform));
+        textGo.SetActive(false);
         textGo.transform.SetParent(fillGo.transform, false);
         RectTransform tRT = textGo.GetComponent<RectTransform>();
         tRT.anchorMin = Vector2.zero;
@@ -230,6 +243,7 @@ public class ButtonTooltipHandler : MonoBehaviour, IPointerEnterHandler, IPointe
         _text.textWrappingMode = TextWrappingModes.Normal;
         _text.overflowMode = TextOverflowModes.Overflow;
         _text.raycastTarget = false;
+        textGo.SetActive(true);
 
         _tooltipRoot.SetActive(false);
     }

@@ -98,8 +98,8 @@ public class StatusIconTooltipHandler : MonoBehaviour, IPointerEnterHandler, IPo
 
         bool isEditable = _entry.CanEdit;
         string header = isEditable
-            ? "<color=#64f0fc><b>[ ⇄ ] SERVER SYNCED:</b></color>"
-            : "<color=#e5a93c><b>[ 🔒 ] SERVER ENFORCED:</b></color>";
+            ? "<color=#64f0fc><b>[<size=140%>⇄</size>] SERVER SYNCED:</b></color>"
+            : "<color=#e5a93c><b>[🔒] SERVER ENFORCED:</b></color>";
 
         string desc = isEditable
             ? "Synchronized with server. You have admin access to modify this setting globally."
@@ -226,6 +226,7 @@ public class StatusIconTooltipHandler : MonoBehaviour, IPointerEnterHandler, IPo
         fillImg.raycastTarget = false;
 
         GameObject textGo = new GameObject("Text", typeof(RectTransform));
+        textGo.SetActive(false);
         textGo.transform.SetParent(fillGo.transform, false);
         RectTransform tRT = textGo.GetComponent<RectTransform>();
         tRT.anchorMin = Vector2.zero;
@@ -250,6 +251,7 @@ public class StatusIconTooltipHandler : MonoBehaviour, IPointerEnterHandler, IPo
         _text.textWrappingMode = TextWrappingModes.Normal;
         _text.overflowMode = TextOverflowModes.Overflow;
         _text.raycastTarget = false;
+        textGo.SetActive(true);
 
         _tooltipRoot.SetActive(false);
     }

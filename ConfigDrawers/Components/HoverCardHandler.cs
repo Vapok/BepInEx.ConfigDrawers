@@ -66,6 +66,15 @@ public class HoverCardHandler : MonoBehaviour, IPointerEnterHandler, IPointerExi
         }
     }
 
+    private void OnDestroy()
+    {
+        if (_activeHandler == this)
+        {
+            HideCard();
+        }
+    }
+
+
     private void Update()
     {
         if (_activeHandler == this && _cardRoot != null && _cardRoot.activeSelf)
@@ -132,7 +141,7 @@ public class HoverCardHandler : MonoBehaviour, IPointerEnterHandler, IPointerExi
             return;
         }
 
-        var header = $"<color=#64f0fc><b>[ i ] {_entry.DispName.ToUpperInvariant()}:</b></color>";
+        var header = $"<color=#64f0fc><b>[i] {_entry.DispName.ToUpperInvariant()}:</b></color>";
         var desc = !string.IsNullOrEmpty(_entry.Description) ? _entry.Description : "No description provided.";
 
         var badges = new StringBuilder();
@@ -177,13 +186,17 @@ public class HoverCardHandler : MonoBehaviour, IPointerEnterHandler, IPointerExi
         }
 
         var badgeStr = badges.ToString().TrimEnd();
+        string descColorHex = _entry.DescriptionColor != Color.white
+            ? ColorUtility.ToHtmlStringRGB(_entry.DescriptionColor)
+            : "c8dbee";
+
         if (!string.IsNullOrEmpty(badgeStr))
         {
-            _text.text = $"{header}\n<color=#c8dbee>{desc}</color>\n\n<size=8.5pt>{badgeStr}</size>";
+            _text.text = $"{header}\n<color=#{descColorHex}>{desc}</color>\n\n<size=8.5pt>{badgeStr}</size>";
         }
         else
         {
-            _text.text = $"{header}\n<color=#c8dbee>{desc}</color>";
+            _text.text = $"{header}\n<color=#{descColorHex}>{desc}</color>";
         }
 
         _text.ForceMeshUpdate();
@@ -268,16 +281,17 @@ public class HoverCardHandler : MonoBehaviour, IPointerEnterHandler, IPointerExi
         fillImg.color = CyberPalette.ColorVoidBlack;
         fillImg.raycastTarget = false;
 
-        var textGo = new GameObject("Text", typeof(RectTransform));
+        GameObject textGo = new GameObject("Text", typeof(RectTransform));
+        textGo.SetActive(false);
         textGo.transform.SetParent(fillGo.transform, false);
-        var tRT = textGo.GetComponent<RectTransform>();
+        RectTransform tRT = textGo.GetComponent<RectTransform>();
         tRT.anchorMin = Vector2.zero;
         tRT.anchorMax = Vector2.one;
         tRT.offsetMin = new Vector2(10f, 8f);
         tRT.offsetMax = new Vector2(-10f, -8f);
 
         _text = textGo.AddComponent<TextMeshProUGUI>();
-        var standardFont = UiFactory.ResolveFont();
+        TMP_FontAsset? standardFont = UiFactory.ResolveFont();
         if (standardFont != null)
         {
             _text.font = standardFont;
@@ -293,6 +307,7 @@ public class HoverCardHandler : MonoBehaviour, IPointerEnterHandler, IPointerExi
         _text.textWrappingMode = TextWrappingModes.Normal;
         _text.overflowMode = TextOverflowModes.Overflow;
         _text.raycastTarget = false;
+        textGo.SetActive(true);
 
         _cardRoot.SetActive(false);
     }

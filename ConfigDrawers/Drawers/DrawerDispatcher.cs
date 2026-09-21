@@ -22,7 +22,12 @@ public static class DrawerDispatcher
             throw new ArgumentNullException(entry == null ? nameof(entry) : nameof(parent));
         }
 
-        if (entry.CustomDrawer != null)
+        if (entry.HasCustomUguiDrawer)
+        {
+            return BepInEx.ConfigDrawers.Drawers.UguiScope.UguiScopeDrawer.Draw(parent, entry);
+        }
+
+        if (entry.CustomDrawer != null || entry.CustomHotkeyDrawer != null)
         {
             return LegacyImguiBridge.Draw(parent, entry);
         }
