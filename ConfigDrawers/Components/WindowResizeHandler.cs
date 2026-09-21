@@ -25,9 +25,9 @@ public class WindowResizeHandler : MonoBehaviour, IBeginDragHandler, IDragHandle
             return;
         }
 
-        var currentSize = _targetWindow.sizeDelta;
-        var newWidth = Mathf.Clamp(currentSize.x + eventData.delta.x, 380f, 960f);
-        var newHeight = Mathf.Clamp(currentSize.y - eventData.delta.y, 320f, Screen.height - 40f);
+        Vector2 currentSize = _targetWindow.sizeDelta;
+        float newWidth = Mathf.Clamp(currentSize.x + eventData.delta.x, 380f, 960f);
+        float newHeight = Mathf.Clamp(currentSize.y - eventData.delta.y, 320f, Screen.height - 40f);
 
         _targetWindow.sizeDelta = new Vector2(newWidth, newHeight);
     }

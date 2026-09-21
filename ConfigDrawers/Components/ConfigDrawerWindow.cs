@@ -966,7 +966,7 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
             Destroy(child.gameObject);
         }
 
-        GameObject navRow = new GameObject("NavRow", typeof(RectTransform), typeof(HorizontalLayoutGroup));
+        GameObject navRow = new("NavRow", typeof(RectTransform), typeof(HorizontalLayoutGroup));
         navRow.transform.SetParent(_contentContainer, false);
         RectTransform navRT = navRow.GetComponent<RectTransform>();
         navRT.anchorMin = new Vector2(0f, 1f);
@@ -976,18 +976,24 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
         navRT.sizeDelta = new Vector2(0f, 26f);
 
         HorizontalLayoutGroup hlg = navRow.GetComponent<HorizontalLayoutGroup>();
+        hlg.padding = new RectOffset(4, 4, 0, 0);
         hlg.spacing = 6f;
         hlg.childAlignment = TextAnchor.MiddleCenter;
-        hlg.childControlWidth = false;
-        hlg.childControlHeight = false;
+        hlg.childControlWidth = true;
+        hlg.childControlHeight = true;
         hlg.childForceExpandWidth = false;
         hlg.childForceExpandHeight = false;
 
         UiFactory.CreateCyberButton(navRow.transform, "BackBtn", "◀ Back", PopulatePlugins, CyberPalette.ColorErrorRed, CyberPalette.ColorErrorRed, 65f, 22f);
 
         TextMeshProUGUI titleLabel = UiFactory.CreateLabel(navRow.transform, "ModHeader", $"<b>{plugin.ModName}</b> <color=#{ColorUtility.ToHtmlStringRGB(CyberPalette.ColorCyberTeal)}>v{plugin.Version}</color>", CyberPalette.ColorTextMain, 11f, TextAlignmentOptions.MidlineLeft);
-        RectTransform titleRT = titleLabel.GetComponent<RectTransform>();
-        titleRT.sizeDelta = new Vector2(230f, 24f);
+        LayoutElement titleLayout = titleLabel.gameObject.AddComponent<LayoutElement>();
+        titleLayout.minWidth = 60f;
+        titleLayout.preferredWidth = 200f;
+        titleLayout.flexibleWidth = 1f;
+        titleLayout.minHeight = 22f;
+        titleLayout.preferredHeight = 22f;
+        titleLayout.flexibleHeight = 0f;
 
         UiFactory.CreateCyberButton(navRow.transform, "ExpandBtn", "Expand", () =>
         {
