@@ -11,7 +11,7 @@
 <p align="center">
   <a href="https://github.com/Vapok/BepInEx.ConfigDrawers/releases"><img src="https://img.shields.io/github/v/release/Vapok/BepInEx.ConfigDrawers?include_prereleases&style=flat-square" alt="GitHub Release"></a>
   <a href="https://thunderstore.io/c/valheim/p/Vapok/BepInEx.ConfigDrawers/"><img src="https://img.shields.io/thunderstore/v/Vapok/BepInEx.ConfigDrawers?style=flat-square" alt="Thunderstore Version"></a>
-  <a href="https://discord.gg/vapok"><img src="https://img.shields.io/discord/941785535977934898?label=Discord&logo=discord&style=flat-square" alt="Discord"></a>
+  <a href="https://discord.gg/5YAJkRFBXt"><img src="https://img.shields.io/discord/941785535977934898?label=Discord&logo=discord&style=flat-square" alt="Discord"></a>
   <a href="LICENSE.md"><img src="https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square" alt="License"></a>
 </p>
 
@@ -35,7 +35,8 @@
 - **Hotkey Rebinding**: Click the hotkey button in the header and press any key to rebind the menu toggle shortcut in-game.
 - **ServerSync Integration**: Automatically identifies server-enforced configurations and displays synchronization status indicators.
 - **Legacy IMGUI Compatibility**: Automatically suppresses conflicting legacy `ConfigurationManager.dll` hotkeys while continuing to render legacy custom drawer delegates inside the modern drawer.
-- **Custom uGUI & IMGUI Drawers**: Native procedural builder API (`CustomUguiDrawer`) for mod configuration interfaces with legacy IMGUI fallback. See [Custom Drawers Guide](Docs/CUSTOM_DRAWERS.md).
+- **Config File Browser & Editor**: Browse raw configuration files in `BepInEx/config/` and edit them directly in-game using a full-screen code editor with real-time syntax highlighting, line numbers, two-line metrics gutter, and live JSON/YAML validation.
+- **Custom uGUI & IMGUI Drawers**: Native procedural builder API (`CustomUguiDrawer`) for mod configuration interfaces with legacy IMGUI fallback. See the [Custom Drawers Guide](https://github.com/Vapok/BepInEx.ConfigDrawers/blob/main/Docs/CUSTOM_DRAWERS.md).
 
 ---
 
@@ -60,11 +61,14 @@ Settings are stored in `BepInEx/config/vapok.bepinex.configdrawers.cfg`:
 
 | Section | Key | Default | Description |
 | :--- | :--- | :--- | :--- |
-| `General` | `ToggleKeybind` | `F1` | Keyboard shortcut to open and close the drawer. |
-| `General` | `DefaultDockPosition` | `Right` | Default dock position on startup (`Left`, `Right`, or `Float`). |
-| `General` | `DrawerWidth` | `380` | Width of the drawer in pixels when docked. |
-| `General` | `UiFontSize` | `Normal` | Font and layout scale (`Small`, `Normal`, or `Large`). |
-| `Compatibility` | `AutoSuppressLegacy` | `true` | Suppresses legacy ConfigurationManager window hotkeys to avoid duplicate windows. |
+| `General` | `Toggle Keybind` | `F1` | Keyboard shortcut to open and close the drawer. |
+| `Interface` | `Default Dock Position` | `Left` | Default screen rail where ConfigDrawer docks (`Left`, `Right`, or `Float`). |
+| `Interface` | `Drawer Width` | `480` | Width of the drawer in pixels when docked (360–720). |
+| `Interface` | `UI Scale` | `1.0` | Overall UI scale factor (0.75–1.75). |
+| `Interface` | `Font Size` | `Normal` | Font and layout scale (`Small`, `Normal`, or `Large`). |
+| `Interface` | `Translucency Opacity` | `0.95` | Background surface opacity (0.5–1.0). |
+| `Interface` | `Hide Advanced Settings` | `true` | Hide advanced settings by default until toggled. |
+| `Compatibility` | `Auto Suppress Legacy Manager` | `true` | Automatically disable hotkeys of older ConfigurationManager versions to prevent duplicate windows. |
 
 ---
 
@@ -81,18 +85,11 @@ Settings are stored in `BepInEx/config/vapok.bepinex.configdrawers.cfg`:
 
 ---
 
-## Building from Source
+## Building Custom Drawers
 
-Requirements:
-- .NET SDK (supporting .NET Framework 4.8 / MSBuild)
-- BepInEx 5.4.x core libraries
-- Unity / TextMeshPro assemblies
+Mod developers can create custom procedural uGUI configuration drawers without taking a having a dependency on `BepInEx.ConfigDrawers`. Simply copy [`ConfigurationManagerAttributes.cs`](https://raw.githubusercontent.com/Vapok/BepInEx.ConfigDrawers/main/Docs/DropIn/ConfigurationManagerAttributes.cs) into your mod project to use `CustomUguiDrawer` alongside legacy `CustomDrawer` fallbacks.
 
-```bash
-git clone https://github.com/Vapok/BepInEx.ConfigDrawers.git
-cd BepInEx.ConfigDrawers
-dotnet build ConfigDrawers.sln -c Release
-```
+For code examples, layout patterns, and the complete `IUguiDrawerScope` builder API, see the [Custom Drawers Guide](https://github.com/Vapok/BepInEx.ConfigDrawers/blob/main/Docs/CUSTOM_DRAWERS.md).
 
 ---
 
@@ -101,6 +98,6 @@ dotnet build ConfigDrawers.sln -c Release
 Maintained by **Vapok**.
 
 - **Website**: [vapok.io](https://vapok.io)
-- **Discord**: [Vapok Gaming Community](https://discord.gg/vapok)
+- **Discord**: [Vapok Gaming Community](https://discord.gg/5YAJkRFBXt)
 - **GitHub**: [Vapok/BepInEx.ConfigDrawers](https://github.com/Vapok/BepInEx.ConfigDrawers)
 - **Thunderstore**: [Vapok Mods](https://thunderstore.io/c/valheim/p/Vapok/)
