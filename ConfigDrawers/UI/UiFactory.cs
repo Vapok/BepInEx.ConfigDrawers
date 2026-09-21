@@ -169,7 +169,8 @@ public static class UiFactory
         float width = 120f,
         float height = 24f,
         string placeholderText = "",
-        bool multiline = false)
+        bool multiline = false,
+        bool wrapText = true)
     {
         GameObject root = CreatePanel(parent, name, CyberPalette.ColorInputGroove, CyberPalette.ColorInputWell, 1f);
         float targetWidth = width > 0f ? width : 120f;
@@ -243,7 +244,7 @@ public static class UiFactory
         textTmp.fontSize = scaledFontSize;
         textTmp.color = CyberPalette.ColorTextMain;
         textTmp.alignment = multiline ? TextAlignmentOptions.TopLeft : TextAlignmentOptions.MidlineLeft;
-        textTmp.textWrappingMode = multiline ? TextWrappingModes.Normal : TextWrappingModes.NoWrap;
+        textTmp.textWrappingMode = multiline && wrapText ? TextWrappingModes.Normal : TextWrappingModes.NoWrap;
         textTmp.richText = false;
         textTmp.overflowMode = TextOverflowModes.Overflow;
         textTmp.raycastTarget = false;
@@ -270,7 +271,7 @@ public static class UiFactory
         placeholderTmp.color = new Color(0.35f, 0.48f, 0.58f, 0.55f);
         placeholderTmp.text = placeholderText ?? string.Empty;
         placeholderTmp.alignment = multiline ? TextAlignmentOptions.TopLeft : TextAlignmentOptions.MidlineLeft;
-        placeholderTmp.textWrappingMode = multiline ? TextWrappingModes.Normal : TextWrappingModes.NoWrap;
+        placeholderTmp.textWrappingMode = multiline && wrapText ? TextWrappingModes.Normal : TextWrappingModes.NoWrap;
         placeholderTmp.richText = false;
         placeholderTmp.raycastTarget = false;
         placeholderObj.SetActive(true);

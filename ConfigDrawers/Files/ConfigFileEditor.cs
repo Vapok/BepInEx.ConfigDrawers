@@ -17,6 +17,7 @@ public class ConfigFileEditor : MonoBehaviour
 {
     private static readonly MethodInfo? AdjustPositionMethod = AccessTools.Method(typeof(TMP_InputField), "AdjustTextPositionRelativeToViewport", new Type[] { typeof(float) });
     private static readonly MethodInfo? GetScrollPositionMethod = AccessTools.Method(typeof(TMP_InputField), "GetScrollPositionRelativeToViewport");
+    private static readonly MethodInfo? AssignPositioningMethod = AccessTools.Method(typeof(TMP_InputField), "AssignPositioningIfNeeded");
 
     private ConfigFileItem? _fileItem;
     private string _originalContent = string.Empty;
@@ -46,7 +47,11 @@ public class ConfigFileEditor : MonoBehaviour
 
     private Scrollbar? _editorScrollbar;
     private ScrollbarDragTracker? _dragTracker;
+    private Scrollbar? _editorHScrollbar;
+    private Image? _hHandleImg;
+    private ScrollbarDragTracker? _hDragTracker;
     private bool _isSyncingScrollbar;
+    private bool _isSyncingHScrollbar;
     private bool _isApplyingHistory;
     private bool _highlightDirty;
     private Coroutine? _syncGutterRoutine;
@@ -275,8 +280,8 @@ public class ConfigFileEditor : MonoBehaviour
         RectTransform gtRT = gutterTextObj.GetComponent<RectTransform>();
         gtRT.anchorMin = Vector2.zero;
         gtRT.anchorMax = Vector2.one;
-        gtRT.offsetMin = new Vector2(2f, 4f);
-        gtRT.offsetMax = new Vector2(-6f, -4f);
+        gtRT.offsetMin = new Vector2(2f, 12f);
+        gtRT.offsetMax = new Vector2(-6f, -6f);
 
         _lineNumbersText = gutterTextObj.AddComponent<TextMeshProUGUI>();
         TMP_FontAsset? font = UIFonts.GetPrimaryFont();
@@ -288,7 +293,7 @@ public class ConfigFileEditor : MonoBehaviour
                 _lineNumbersText.fontSharedMaterial = font.material;
             }
         }
-        _lineNumbersText.fontSize = 10f;
+        _lineNumbersText.fontSize = UiFactory.GetScaledFontSize(10f);
         _lineNumbersText.lineSpacing = 0f;
         _lineNumbersText.color = CyberPalette.ColorTextMuted;
         _lineNumbersText.alignment = TextAlignmentOptions.TopRight;
@@ -321,15 +326,32 @@ public class ConfigFileEditor : MonoBehaviour
         divLe.flexibleWidth = 0f;
         divLe.flexibleHeight = 1f;
 
+        GameObject editorColumn = new GameObject("EditorColumn", typeof(RectTransform), typeof(VerticalLayoutGroup), typeof(LayoutElement));
+        editorColumn.transform.SetParent(hContainer.transform, false);
+
+        LayoutElement colLe = editorColumn.GetComponent<LayoutElement>();
+        colLe.minWidth = 100f;
+        colLe.preferredWidth = -1f;
+        colLe.flexibleWidth = 1f;
+        colLe.flexibleHeight = 1f;
+
+        VerticalLayoutGroup colVlg = editorColumn.GetComponent<VerticalLayoutGroup>();
+        colVlg.spacing = 0f;
+        colVlg.childControlWidth = true;
+        colVlg.childControlHeight = true;
+        colVlg.childForceExpandWidth = true;
+        colVlg.childForceExpandHeight = false;
+
         (GameObject inputRoot, TMP_InputField input) = UiFactory.CreateInputField(
-            hContainer.transform,
+            editorColumn.transform,
             "CodeInput",
             _currentContent,
             OnContentCommitted,
             -1f,
             -1f,
             "",
-            true);
+            true,
+            false);
 
         _editorInput = input;
         _editorInput.customCaretColor = true;
@@ -341,7 +363,7 @@ public class ConfigFileEditor : MonoBehaviour
 
         if (_editorInput.textComponent != null)
         {
-            _editorInput.textComponent.textWrappingMode = TextWrappingModes.Normal;
+            _editorInput.textComponent.textWrappingMode = TextWrappingModes.NoWrap;
         }
 
         LayoutElement inputLe = inputRoot.GetComponent<LayoutElement>();
@@ -351,6 +373,40 @@ public class ConfigFileEditor : MonoBehaviour
         inputLe.minHeight = 100f;
         inputLe.preferredHeight = -1f;
         inputLe.flexibleHeight = 1f;
+
+        GameObject hScrollbarObj = new GameObject("EditorHScrollbar", typeof(RectTransform), typeof(Scrollbar), typeof(Image), typeof(LayoutElement));
+        hScrollbarObj.transform.SetParent(editorColumn.transform, false);
+
+        LayoutElement hsbLe = hScrollbarObj.GetComponent<LayoutElement>();
+        hsbLe.minHeight = 6f;
+        hsbLe.preferredHeight = 6f;
+        hsbLe.flexibleHeight = 0f;
+        hsbLe.flexibleWidth = 1f;
+
+        Image hsbBg = hScrollbarObj.GetComponent<Image>();
+        hsbBg.color = new Color(0.01f, 0.02f, 0.04f, 0.8f);
+
+        GameObject hSlidingArea = new GameObject("SlidingArea", typeof(RectTransform));
+        hSlidingArea.transform.SetParent(hScrollbarObj.transform, false);
+        RectTransform hsaRT = hSlidingArea.GetComponent<RectTransform>();
+        hsaRT.anchorMin = Vector2.zero;
+        hsaRT.anchorMax = Vector2.one;
+        hsaRT.sizeDelta = Vector2.zero;
+
+        GameObject hHandleObj = new GameObject("Handle", typeof(RectTransform), typeof(Image));
+        hHandleObj.transform.SetParent(hSlidingArea.transform, false);
+        RectTransform hHandleRT = hHandleObj.GetComponent<RectTransform>();
+        hHandleRT.sizeDelta = Vector2.zero;
+
+        _hHandleImg = hHandleObj.GetComponent<Image>();
+        _hHandleImg.color = CyberPalette.ColorIceBlue;
+
+        _editorHScrollbar = hScrollbarObj.GetComponent<Scrollbar>();
+        _editorHScrollbar.handleRect = hHandleRT;
+        _editorHScrollbar.targetGraphic = _hHandleImg;
+        _editorHScrollbar.direction = Scrollbar.Direction.LeftToRight;
+        _editorHScrollbar.onValueChanged.AddListener(OnHScrollbarValueChanged);
+        _hDragTracker = hScrollbarObj.AddComponent<ScrollbarDragTracker>();
 
         GameObject scrollbarObj = new GameObject("EditorScrollbar", typeof(RectTransform), typeof(Scrollbar), typeof(Image), typeof(LayoutElement));
         scrollbarObj.transform.SetParent(hContainer.transform, false);
@@ -388,18 +444,21 @@ public class ConfigFileEditor : MonoBehaviour
         if (_editorInput.textViewport != null)
         {
             EditorScrollHandler taScroll = _editorInput.textViewport.gameObject.AddComponent<EditorScrollHandler>();
-            taScroll.Scrollbar = _editorScrollbar;
+            taScroll.VerticalScrollbar = _editorScrollbar;
+            taScroll.HorizontalScrollbar = _editorHScrollbar;
             taScroll.Viewport = _editorInput.textViewport;
             taScroll.TextComponent = _editorInput.textComponent;
         }
 
         EditorScrollHandler rootScroll = inputRoot.AddComponent<EditorScrollHandler>();
-        rootScroll.Scrollbar = _editorScrollbar;
+        rootScroll.VerticalScrollbar = _editorScrollbar;
+        rootScroll.HorizontalScrollbar = _editorHScrollbar;
         rootScroll.Viewport = _editorInput.textViewport;
         rootScroll.TextComponent = _editorInput.textComponent;
 
         EditorScrollHandler gutterScroll = gutterObj.AddComponent<EditorScrollHandler>();
-        gutterScroll.Scrollbar = _editorScrollbar;
+        gutterScroll.VerticalScrollbar = _editorScrollbar;
+        gutterScroll.HorizontalScrollbar = _editorHScrollbar;
         gutterScroll.Viewport = _editorInput.textViewport;
         gutterScroll.TextComponent = _editorInput.textComponent;
 
@@ -469,6 +528,11 @@ public class ConfigFileEditor : MonoBehaviour
             return;
         }
 
+        if (_editorInput.isFocused && (_hDragTracker == null || !_hDragTracker.IsDragging))
+        {
+            EnsureCaretVisible();
+        }
+
         Vector2 targetPos = _editorInput.textComponent.rectTransform.anchoredPosition;
 
         if (_lineNumbersText != null)
@@ -501,6 +565,55 @@ public class ConfigFileEditor : MonoBehaviour
                 _editorScrollbar.size = 1f;
                 _editorScrollbar.value = 0f;
                 _isSyncingScrollbar = false;
+            }
+        }
+
+        float textWidth = _editorInput.textComponent.preferredWidth;
+        float viewWidth = _editorInput.textViewport != null ? _editorInput.textViewport.rect.width : 100f;
+        float scrollableWidth = textWidth - viewWidth + 40f;
+
+        if (scrollableWidth <= 0f && _editorInput.textComponent.rectTransform.anchoredPosition.x != 0f)
+        {
+            Vector2 cur = _editorInput.textComponent.rectTransform.anchoredPosition;
+            _editorInput.textComponent.rectTransform.anchoredPosition = new Vector2(0f, cur.y);
+            AssignPositioningMethod?.Invoke(_editorInput, null);
+        }
+        else if (scrollableWidth > 0f && _editorInput.textComponent.rectTransform.anchoredPosition.x < -scrollableWidth)
+        {
+            Vector2 cur = _editorInput.textComponent.rectTransform.anchoredPosition;
+            _editorInput.textComponent.rectTransform.anchoredPosition = new Vector2(-scrollableWidth, cur.y);
+            AssignPositioningMethod?.Invoke(_editorInput, null);
+        }
+
+        if (_editorHScrollbar != null && (_hDragTracker == null || !_hDragTracker.IsDragging))
+        {
+            if (scrollableWidth > 0f && viewWidth > 0f)
+            {
+                float targetSize = Mathf.Clamp(viewWidth / (textWidth + 40f), 0.08f, 1f);
+                float currentScrollX = -_editorInput.textComponent.rectTransform.anchoredPosition.x;
+                float targetVal = Mathf.Clamp01(currentScrollX / scrollableWidth);
+
+                _isSyncingHScrollbar = true;
+                _editorHScrollbar.size = targetSize;
+                _editorHScrollbar.value = targetVal;
+                _isSyncingHScrollbar = false;
+
+                if (_hHandleImg != null)
+                {
+                    _hHandleImg.color = CyberPalette.ColorIceBlue;
+                }
+            }
+            else
+            {
+                _isSyncingHScrollbar = true;
+                _editorHScrollbar.size = 1f;
+                _editorHScrollbar.value = 0f;
+                _isSyncingHScrollbar = false;
+
+                if (_hHandleImg != null)
+                {
+                    _hHandleImg.color = Color.clear;
+                }
             }
         }
 
@@ -568,6 +681,80 @@ public class ConfigFileEditor : MonoBehaviour
         }
 
         AdjustPositionMethod?.Invoke(_editorInput, new object[] { val });
+    }
+
+    private void OnHScrollbarValueChanged(float val)
+    {
+        if (_isSyncingHScrollbar || _editorInput == null || _editorInput.textComponent == null)
+        {
+            return;
+        }
+
+        float textWidth = _editorInput.textComponent.preferredWidth;
+        float viewWidth = _editorInput.textViewport != null ? _editorInput.textViewport.rect.width : 100f;
+        float scrollableWidth = textWidth - viewWidth + 40f;
+
+        if (scrollableWidth <= 0f)
+        {
+            return;
+        }
+
+        float targetX = -Mathf.Clamp01(val) * scrollableWidth;
+        Vector2 curPos = _editorInput.textComponent.rectTransform.anchoredPosition;
+        _editorInput.textComponent.rectTransform.anchoredPosition = new Vector2(targetX, curPos.y);
+        AssignPositioningMethod?.Invoke(_editorInput, null);
+    }
+
+    private void EnsureCaretVisible()
+    {
+        if (_editorInput == null || !_editorInput.isFocused || _editorInput.textViewport == null || _editorInput.textComponent == null)
+        {
+            return;
+        }
+
+        TMP_TextInfo textInfo = _editorInput.textComponent.textInfo;
+        if (textInfo == null || textInfo.characterCount == 0)
+        {
+            return;
+        }
+
+        int caretPos = Mathf.Clamp(_editorInput.stringPosition, 0, textInfo.characterCount);
+        float caretX = 0f;
+        if (caretPos < textInfo.characterCount)
+        {
+            caretX = textInfo.characterInfo[caretPos].origin;
+        }
+        else if (textInfo.characterCount > 0)
+        {
+            caretX = textInfo.characterInfo[textInfo.characterCount - 1].xAdvance;
+        }
+
+        Rect viewRect = _editorInput.textViewport.rect;
+        float textX = _editorInput.textComponent.rectTransform.anchoredPosition.x;
+        float caretViewX = caretX + textX;
+
+        float margin = 20f;
+        float minVisibleX = viewRect.xMin + margin;
+        float maxVisibleX = viewRect.xMax - margin;
+
+        if (caretViewX > maxVisibleX)
+        {
+            float shift = caretViewX - maxVisibleX;
+            float newX = textX - shift;
+            float textWidth = _editorInput.textComponent.preferredWidth;
+            float maxScroll = Mathf.Max(0f, textWidth - viewRect.width + 40f);
+            newX = Mathf.Clamp(newX, -maxScroll, 0f);
+            _editorInput.textComponent.rectTransform.anchoredPosition = new Vector2(newX, _editorInput.textComponent.rectTransform.anchoredPosition.y);
+            AssignPositioningMethod?.Invoke(_editorInput, null);
+        }
+        else if (caretViewX < minVisibleX)
+        {
+            float shift = minVisibleX - caretViewX;
+            float newX = textX + shift;
+            newX = Mathf.Clamp(newX, -Mathf.Max(0f, _editorInput.textComponent.preferredWidth - viewRect.width + 40f), 0f);
+            _editorInput.textComponent.rectTransform.anchoredPosition = new Vector2(newX, _editorInput.textComponent.rectTransform.anchoredPosition.y);
+            AssignPositioningMethod?.Invoke(_editorInput, null);
+        }
     }
 
     private void OnContentChanged(string newText)
