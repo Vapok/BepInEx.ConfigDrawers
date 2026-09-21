@@ -33,6 +33,7 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
     private CanvasScaler? _canvasScaler;
     private GraphicRaycaster? _graphicRaycaster;
     private RectTransform? _drawerRootRT;
+    private CanvasGroup? _windowCanvasGroup;
     private GameObject? _resizeHandleObj;
     private Transform? _contentContainer;
     private TMP_InputField? _searchField;
@@ -87,14 +88,22 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
 
         _graphicRaycaster = gameObject.AddComponent<GraphicRaycaster>();
 
-        var drawerObj = UiFactory.CreatePanel(transform, "DrawerRoot", CyberPalette.ColorIceBlue, CyberPalette.ColorVoidBlack, 1f);
+        GameObject drawerObj = new GameObject("DrawerRoot", typeof(RectTransform), typeof(Image));
+        drawerObj.transform.SetParent(transform, false);
+
+        Image bgImg = drawerObj.GetComponent<Image>();
+        bgImg.color = CyberPalette.ColorVoidBlack;
+
         _drawerRootRT = drawerObj.GetComponent<RectTransform>();
+        _windowCanvasGroup = drawerObj.AddComponent<CanvasGroup>();
+        UpdateWindowOpacity();
+
+        UiFactory.AddBorderOutline(drawerObj.transform, CyberPalette.ColorIceBlue, 1f);
 
         BuildResizeHandle(drawerObj.transform);
         ApplyDockPosition(ConfigDrawerConfig.DefaultDockPosition.Value);
 
-        var fill = drawerObj.transform.Find("Fill");
-        var container = fill != null ? fill : drawerObj.transform;
+        Transform container = drawerObj.transform;
 
         BuildHeader(container);
         BuildSearchBar(container);
@@ -110,6 +119,11 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
         ConfigDrawerConfig.HideAdvancedByDefault.SettingChanged += (_, _) =>
         {
             UpdateAdvancedButton();
+        };
+
+        ConfigDrawerConfig.WindowOpacity.SettingChanged += (_, _) =>
+        {
+            UpdateWindowOpacity();
         };
 
         UiFactory.RefreshAllFonts(gameObject);
@@ -309,6 +323,15 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
         }
     }
 
+    private void UpdateWindowOpacity()
+    {
+        if (_windowCanvasGroup != null)
+        {
+            float opacity = Mathf.Clamp(ConfigDrawerConfig.WindowOpacity.Value, 0.20f, 1.0f);
+            _windowCanvasGroup.alpha = opacity;
+        }
+    }
+
     private string GetFontSizeLabel()
     {
         return ConfigDrawerConfig.UiFontSize.Value switch
@@ -397,7 +420,7 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
         var fill = footerObj.transform.Find("Fill");
         var target = fill != null ? fill : footerObj.transform;
 
-        var titleLabel = UiFactory.CreateLabel(target, "Brand", "BEPINEX CONFIG DRAWERS  v1.0.0", CyberPalette.ColorCyberTeal, 9f, TextAlignmentOptions.MidlineLeft);
+        var titleLabel = UiFactory.CreateLabel(target, "Brand", $"BEPINEX CONFIG DRAWERS  v{ConfigDrawers.ModVersion}", CyberPalette.ColorCyberTeal, 9f, TextAlignmentOptions.MidlineLeft);
         var titleRT = titleLabel.GetComponent<RectTransform>();
         titleRT.anchorMin = new Vector2(0f, 0f);
         titleRT.anchorMax = new Vector2(0.6f, 1f);

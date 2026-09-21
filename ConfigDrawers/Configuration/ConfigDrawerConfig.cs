@@ -11,7 +11,7 @@ public static class ConfigDrawerConfig
     public static ConfigEntry<float> DrawerWidth { get; private set; } = null!;
     public static ConfigEntry<float> UiScale { get; private set; } = null!;
     public static ConfigEntry<FontSizeScale> UiFontSize { get; private set; } = null!;
-    public static ConfigEntry<float> TranslucencyOpacity { get; private set; } = null!;
+    public static ConfigEntry<float> WindowOpacity { get; private set; } = null!;
     public static ConfigEntry<bool> HideAdvancedByDefault { get; private set; } = null!;
     public static ConfigEntry<bool> AutoSuppressLegacy { get; private set; } = null!;
 
@@ -57,11 +57,20 @@ public static class ConfigDrawerConfig
             "Font size scale: Small, Normal, Large."
         );
 
-        TranslucencyOpacity = config.Bind(
+        ConfigDefinition legacyDef = new ConfigDefinition("Interface", "Translucency Opacity");
+        float defaultOpacity = 1.0f;
+        if (config.ContainsKey(legacyDef))
+        {
+            ConfigEntry<float> legacyEntry = config.Bind(legacyDef, 1.0f);
+            defaultOpacity = legacyEntry.Value;
+            config.Remove(legacyDef);
+        }
+
+        WindowOpacity = config.Bind(
             "Interface",
-            "Translucency Opacity",
-            0.95f,
-            new ConfigDescription("Background surface opacity.", new AcceptableValueRange<float>(0.5f, 1.0f))
+            "Window Opacity",
+            defaultOpacity,
+            new ConfigDescription("Overall opacity of the drawer window.", new AcceptableValueRange<float>(0.20f, 1.0f))
         );
 
         HideAdvancedByDefault = config.Bind(

@@ -67,7 +67,7 @@ Settings are stored in `BepInEx/config/vapok.bepinex.configdrawers.cfg`:
 | `Interface` | `Drawer Width` | `480` | Width of the drawer in pixels when docked (360–720). |
 | `Interface` | `UI Scale` | `1.0` | Overall UI scale factor (0.75–1.75). |
 | `Interface` | `Font Size` | `Normal` | Font and layout scale (`Small`, `Normal`, or `Large`). |
-| `Interface` | `Translucency Opacity` | `0.95` | Background surface opacity (0.5–1.0). |
+| `Interface` | `Window Opacity` | `1.0` | Overall opacity of the drawer window (0.2–1.0). |
 | `Interface` | `Hide Advanced Settings` | `true` | Hide advanced settings by default until toggled. |
 | `Compatibility` | `Auto Suppress Legacy Manager` | `true` | Automatically disable hotkeys of older ConfigurationManager versions to prevent duplicate windows. |
 

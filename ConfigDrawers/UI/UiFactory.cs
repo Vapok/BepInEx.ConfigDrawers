@@ -62,6 +62,29 @@ public static class UiFactory
         return outerObj;
     }
 
+    public static void AddBorderOutline(Transform parent, Color borderColor, float width = 1f)
+    {
+        float bw = Mathf.Max(width, 0.5f);
+        CreateBorderLine(parent, "BorderTop", new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(0f, -bw), Vector2.zero, borderColor);
+        CreateBorderLine(parent, "BorderBottom", new Vector2(0f, 0f), new Vector2(1f, 0f), Vector2.zero, new Vector2(0f, bw), borderColor);
+        CreateBorderLine(parent, "BorderLeft", new Vector2(0f, 0f), new Vector2(0f, 1f), Vector2.zero, new Vector2(bw, 0f), borderColor);
+        CreateBorderLine(parent, "BorderRight", new Vector2(1f, 0f), new Vector2(1f, 1f), new Vector2(-bw, 0f), Vector2.zero, borderColor);
+    }
+
+    private static void CreateBorderLine(Transform parent, string name, Vector2 anchorMin, Vector2 anchorMax, Vector2 offsetMin, Vector2 offsetMax, Color color)
+    {
+        GameObject line = new GameObject(name, typeof(RectTransform), typeof(Image));
+        line.transform.SetParent(parent, false);
+        RectTransform rt = line.GetComponent<RectTransform>();
+        rt.anchorMin = anchorMin;
+        rt.anchorMax = anchorMax;
+        rt.offsetMin = offsetMin;
+        rt.offsetMax = offsetMax;
+        Image img = line.GetComponent<Image>();
+        img.color = color;
+        img.raycastTarget = false;
+    }
+
     public static GameObject CreateCyberButton(
         Transform parent,
         string name,
