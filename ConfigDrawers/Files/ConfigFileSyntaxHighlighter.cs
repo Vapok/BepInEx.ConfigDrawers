@@ -212,16 +212,9 @@ public static class ConfigFileSyntaxHighlighter
         return sb.ToString();
     }
 
-    public static void ApplyHighlighting(TMP_Text textComponent, string rawContent, string extension)
+    public static void ApplyHighlightingToTextInfo(TMP_TextInfo textInfo, string rawContent, string extension)
     {
-        if (textComponent == null || string.IsNullOrEmpty(rawContent))
-        {
-            return;
-        }
-
-        textComponent.ForceMeshUpdate();
-        TMP_TextInfo textInfo = textComponent.textInfo;
-        if (textInfo == null || textInfo.characterCount == 0)
+        if (textInfo == null || textInfo.characterCount == 0 || string.IsNullOrEmpty(rawContent))
         {
             return;
         }
@@ -264,7 +257,17 @@ public static class ConfigFileSyntaxHighlighter
         {
             HighlightYamlTokens(textInfo, rawContent);
         }
+    }
 
+    public static void ApplyHighlighting(TMP_Text textComponent, string rawContent, string extension)
+    {
+        if (textComponent == null || string.IsNullOrEmpty(rawContent))
+        {
+            return;
+        }
+
+        textComponent.ForceMeshUpdate();
+        ApplyHighlightingToTextInfo(textComponent.textInfo, rawContent, extension);
         textComponent.UpdateVertexData(TMP_VertexDataUpdateFlags.Colors32);
     }
 

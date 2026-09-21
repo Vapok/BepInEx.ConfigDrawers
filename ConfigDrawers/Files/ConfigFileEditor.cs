@@ -53,7 +53,6 @@ public class ConfigFileEditor : MonoBehaviour
     private bool _isSyncingScrollbar;
     private bool _isSyncingHScrollbar;
     private bool _isApplyingHistory;
-    private bool _highlightDirty;
     private Coroutine? _syncGutterRoutine;
 
     public bool IsDirty => _fileItem != null && _currentContent != _originalContent;
@@ -95,7 +94,6 @@ public class ConfigFileEditor : MonoBehaviour
         UpdateDirtyState();
         UpdateLineNumbers();
         ValidateJsonIfNeeded();
-        _highlightDirty = true;
 
         StartCoroutine(FocusEditorRoutine());
     }
@@ -114,7 +112,6 @@ public class ConfigFileEditor : MonoBehaviour
             _editorInput.ActivateInputField();
             _editorInput.caretPosition = 0;
             _editorInput.stringPosition = 0;
-            _highlightDirty = true;
         }
     }
 
@@ -364,6 +361,8 @@ public class ConfigFileEditor : MonoBehaviour
         if (_editorInput.textComponent != null)
         {
             _editorInput.textComponent.textWrappingMode = TextWrappingModes.NoWrap;
+            _editorInput.textComponent.OnPreRenderText -= OnTextPreRender;
+            _editorInput.textComponent.OnPreRenderText += OnTextPreRender;
         }
 
         LayoutElement inputLe = inputRoot.GetComponent<LayoutElement>();
@@ -616,12 +615,6 @@ public class ConfigFileEditor : MonoBehaviour
                 }
             }
         }
-
-        if (_highlightDirty && _editorInput != null && _editorInput.textComponent != null && _fileItem != null)
-        {
-            _highlightDirty = false;
-            ConfigFileSyntaxHighlighter.ApplyHighlighting(_editorInput.textComponent, _currentContent, _fileItem.Extension);
-        }
     }
 
     private void Update()
@@ -775,7 +768,6 @@ public class ConfigFileEditor : MonoBehaviour
         UpdateDirtyState();
         ScheduleGutterUpdate();
         ValidateJsonIfNeeded();
-        _highlightDirty = true;
     }
 
     private void OnContentCommitted(string newText)
@@ -784,7 +776,6 @@ public class ConfigFileEditor : MonoBehaviour
         UpdateDirtyState();
         UpdateLineNumbers();
         ValidateJsonIfNeeded();
-        _highlightDirty = true;
     }
 
     private void ScheduleGutterUpdate()
@@ -943,7 +934,6 @@ public class ConfigFileEditor : MonoBehaviour
         UpdateDirtyState();
         UpdateLineNumbers();
         ValidateJsonIfNeeded();
-        _highlightDirty = true;
     }
 
     private void PerformRedo()
@@ -962,7 +952,6 @@ public class ConfigFileEditor : MonoBehaviour
         UpdateDirtyState();
         UpdateLineNumbers();
         ValidateJsonIfNeeded();
-        _highlightDirty = true;
     }
 
     private void FormatJsonContent()
@@ -1111,5 +1100,29 @@ public class ConfigFileEditor : MonoBehaviour
         }
 
         _onBackRequested?.Invoke();
+    }
+
+    private void OnTextPreRender(TMP_TextInfo textInfo)
+    {
+        if (_fileItem == null || textInfo == null || textInfo.characterCount == 0)
+        {
+            return;
+        }
+
+        string content = _editorInput != null ? _editorInput.text : _currentContent;
+        if (string.IsNullOrEmpty(content))
+        {
+            return;
+        }
+
+        ConfigFileSyntaxHighlighter.ApplyHighlightingToTextInfo(textInfo, content, _fileItem.Extension);
+    }
+
+    private void OnDestroy()
+    {
+        if (_editorInput != null && _editorInput.textComponent != null)
+        {
+            _editorInput.textComponent.OnPreRenderText -= OnTextPreRender;
+        }
     }
 }
