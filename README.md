@@ -1,7 +1,7 @@
 # BepInEx.ConfigDrawers
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/Vapok/BepInEx.ConfigDrawers/main/icon.png" width="128" height="128" alt="BepInEx.ConfigDrawers Logo">
+  <img src="https://raw.githubusercontent.com/Vapok/BepInEx.ConfigDrawers/main/Docs/icon_large.png" width="300" alt="BepInEx.ConfigDrawers Logo">
 </p>
 
 <p align="center">
