@@ -762,16 +762,15 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
     {
         _activePlugin = null;
         _activeFile = null;
-        _activeFileEditor = null;
+        if (_activeFileEditor != null)
+        {
+            Destroy(_activeFileEditor.gameObject);
+            _activeFileEditor = null;
+        }
+
         if (_contentContainer == null)
         {
             return;
-        }
-
-        ConfigFileEditor? lingering = _contentContainer.gameObject.GetComponent<ConfigFileEditor>();
-        if (lingering != null)
-        {
-            Destroy(lingering);
         }
 
         foreach (Transform child in _contentContainer)
@@ -809,6 +808,12 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
         _activePlugin = null;
         _activeFile = fileItem;
 
+        if (_activeFileEditor != null)
+        {
+            Destroy(_activeFileEditor.gameObject);
+            _activeFileEditor = null;
+        }
+
         if (_contentContainer == null)
         {
             return;
@@ -817,12 +822,6 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
         foreach (Transform child in _contentContainer)
         {
             Destroy(child.gameObject);
-        }
-
-        ConfigFileEditor? lingering = _contentContainer.gameObject.GetComponent<ConfigFileEditor>();
-        if (lingering != null)
-        {
-            Destroy(lingering);
         }
 
         GameObject editorHost = new GameObject("FileEditorHost", typeof(RectTransform));
@@ -846,16 +845,15 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
     {
         _activePlugin = null;
         _activeFile = null;
-        _activeFileEditor = null;
+        if (_activeFileEditor != null)
+        {
+            Destroy(_activeFileEditor.gameObject);
+            _activeFileEditor = null;
+        }
+
         if (_contentContainer == null)
         {
             return;
-        }
-
-        ConfigFileEditor? lingering = _contentContainer.gameObject.GetComponent<ConfigFileEditor>();
-        if (lingering != null)
-        {
-            Destroy(lingering);
         }
 
         foreach (Transform child in _contentContainer)

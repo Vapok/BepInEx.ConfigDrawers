@@ -19,19 +19,61 @@ public class ConfigFileEditor : MonoBehaviour
     private static readonly MethodInfo? GetScrollPositionMethod = AccessTools.Method(typeof(TMP_InputField), "GetScrollPositionRelativeToViewport");
     private static readonly MethodInfo? AssignPositioningMethod = AccessTools.Method(typeof(TMP_InputField), "AssignPositioningIfNeeded");
 
+    private static readonly Func<TMP_InputField, float>? GetScrollPositionDelegate;
+    private static readonly Action<TMP_InputField>? AssignPositioningDelegate;
+    private static readonly Action<TMP_InputField, float>? AdjustPositionDelegate;
+
+    static ConfigFileEditor()
+    {
+        if (GetScrollPositionMethod != null)
+        {
+            try
+            {
+                GetScrollPositionDelegate = (Func<TMP_InputField, float>)Delegate.CreateDelegate(typeof(Func<TMP_InputField, float>), null, GetScrollPositionMethod);
+            }
+            catch (Exception)
+            {
+            }
+        }
+
+        if (AssignPositioningMethod != null)
+        {
+            try
+            {
+                AssignPositioningDelegate = (Action<TMP_InputField>)Delegate.CreateDelegate(typeof(Action<TMP_InputField>), null, AssignPositioningMethod);
+            }
+            catch (Exception)
+            {
+            }
+        }
+
+        if (AdjustPositionMethod != null)
+        {
+            try
+            {
+                AdjustPositionDelegate = (Action<TMP_InputField, float>)Delegate.CreateDelegate(typeof(Action<TMP_InputField, float>), null, AdjustPositionMethod);
+            }
+            catch (Exception)
+            {
+            }
+        }
+    }
+
     private ConfigFileItem? _fileItem;
     private string _originalContent = string.Empty;
     private string _currentContent = string.Empty;
 
-    private readonly Stack<string> _undoStack = new();
-    private readonly Stack<string> _redoStack = new();
+    private readonly List<string> _undoStack = new();
+    private readonly List<string> _redoStack = new();
     private const int MaxUndoSteps = 50;
+    private int _cachedLineCount = -1;
 
     private Action? _onBackRequested;
 
     private TextMeshProUGUI? _titleLabel;
     private TextMeshProUGUI? _dirtyIndicator;
-    private TextMeshProUGUI? _statusFooter;
+    private TextMeshProUGUI? _statusStatsText;
+    private TextMeshProUGUI? _statusPathText;
     private TextMeshProUGUI? _lineNumbersText;
     private TMP_InputField? _editorInput;
     private int _lastCaretPosition = -1;
@@ -481,11 +523,11 @@ public class ConfigFileEditor : MonoBehaviour
         statusObj.transform.SetParent(parent, false);
 
         RectTransform sbRT = statusObj.GetComponent<RectTransform>();
-        sbRT.sizeDelta = new Vector2(0f, 20f);
+        sbRT.sizeDelta = new Vector2(0f, 32f);
 
         LayoutElement sbLe = statusObj.AddComponent<LayoutElement>();
-        sbLe.minHeight = 20f;
-        sbLe.preferredHeight = 20f;
+        sbLe.minHeight = 32f;
+        sbLe.preferredHeight = 32f;
         sbLe.flexibleHeight = 0f;
 
         HorizontalLayoutGroup hlg = statusObj.GetComponent<HorizontalLayoutGroup>();
@@ -494,12 +536,32 @@ public class ConfigFileEditor : MonoBehaviour
         hlg.childControlHeight = true;
         hlg.childForceExpandWidth = false;
         hlg.childForceExpandHeight = false;
-        hlg.childAlignment = TextAnchor.MiddleLeft;
+        hlg.childAlignment = TextAnchor.MiddleCenter;
 
-        _statusFooter = UiFactory.CreateLabel(statusObj.transform, "FooterText", "UTF-8", CyberPalette.ColorTextMuted, 8.5f, TextAlignmentOptions.MidlineLeft);
-        LayoutElement footerLe = _statusFooter.gameObject.AddComponent<LayoutElement>();
-        footerLe.flexibleWidth = 1f;
-        footerLe.flexibleHeight = 1f;
+        GameObject textCol = new GameObject("StatusTextColumn", typeof(RectTransform), typeof(VerticalLayoutGroup));
+        textCol.transform.SetParent(statusObj.transform, false);
+
+        LayoutElement colLe = textCol.AddComponent<LayoutElement>();
+        colLe.flexibleWidth = 1f;
+        colLe.flexibleHeight = 1f;
+
+        VerticalLayoutGroup vlg = textCol.GetComponent<VerticalLayoutGroup>();
+        vlg.spacing = 1f;
+        vlg.childControlWidth = true;
+        vlg.childControlHeight = true;
+        vlg.childForceExpandWidth = true;
+        vlg.childForceExpandHeight = true;
+        vlg.childAlignment = TextAnchor.MiddleLeft;
+
+        _statusStatsText = UiFactory.CreateLabel(textCol.transform, "StatsText", "UTF-8", CyberPalette.ColorTextMuted, 8.5f, TextAlignmentOptions.MidlineLeft);
+        _statusStatsText.overflowMode = TextOverflowModes.Ellipsis;
+
+        _statusPathText = UiFactory.CreateLabel(textCol.transform, "PathText", _fileItem?.RelativePath ?? string.Empty, CyberPalette.ColorIceBlue, 8.5f, TextAlignmentOptions.MidlineLeft);
+        _statusPathText.overflowMode = TextOverflowModes.Ellipsis;
+        if (_fileItem != null)
+        {
+            ButtonTooltipHandler.Attach(_statusPathText.gameObject, "FILE PATH", _fileItem.FullPath);
+        }
 
         GameObject badgeObj = UiFactory.CreatePanel(statusObj.transform, "ValidatorBadge", CyberPalette.ColorGlacialMint, CyberPalette.ColorVoidBlack, 1f);
         _validatorBadgeObj = badgeObj;
@@ -509,8 +571,8 @@ public class ConfigFileEditor : MonoBehaviour
         badgeLe.minWidth = 90f;
         badgeLe.preferredWidth = 90f;
         badgeLe.flexibleWidth = 0f;
-        badgeLe.minHeight = 18f;
-        badgeLe.preferredHeight = 18f;
+        badgeLe.minHeight = 22f;
+        badgeLe.preferredHeight = 22f;
         badgeLe.flexibleHeight = 0f;
 
         Transform? badgeFill = badgeObj.transform.Find("Fill");
@@ -556,7 +618,9 @@ public class ConfigFileEditor : MonoBehaviour
 
             if (textHeight > viewHeight && viewHeight > 0f)
             {
-                float targetVal = (float)(GetScrollPositionMethod?.Invoke(_editorInput, null) ?? 0f);
+                float targetVal = GetScrollPositionDelegate != null
+                    ? GetScrollPositionDelegate(_editorInput)
+                    : (float)(GetScrollPositionMethod?.Invoke(_editorInput, null) ?? 0f);
                 float targetSize = Mathf.Clamp(viewHeight / textHeight, 0.08f, 1f);
 
                 _isSyncingScrollbar = true;
@@ -581,13 +645,27 @@ public class ConfigFileEditor : MonoBehaviour
         {
             Vector2 cur = _editorInput.textComponent.rectTransform.anchoredPosition;
             _editorInput.textComponent.rectTransform.anchoredPosition = new Vector2(0f, cur.y);
-            AssignPositioningMethod?.Invoke(_editorInput, null);
+            if (AssignPositioningDelegate != null)
+            {
+                AssignPositioningDelegate(_editorInput);
+            }
+            else
+            {
+                AssignPositioningMethod?.Invoke(_editorInput, null);
+            }
         }
         else if (scrollableWidth > 0f && _editorInput.textComponent.rectTransform.anchoredPosition.x < -scrollableWidth)
         {
             Vector2 cur = _editorInput.textComponent.rectTransform.anchoredPosition;
             _editorInput.textComponent.rectTransform.anchoredPosition = new Vector2(-scrollableWidth, cur.y);
-            AssignPositioningMethod?.Invoke(_editorInput, null);
+            if (AssignPositioningDelegate != null)
+            {
+                AssignPositioningDelegate(_editorInput);
+            }
+            else
+            {
+                AssignPositioningMethod?.Invoke(_editorInput, null);
+            }
         }
 
         if (_editorHScrollbar != null && (_hDragTracker == null || !_hDragTracker.IsDragging))
@@ -679,7 +757,14 @@ public class ConfigFileEditor : MonoBehaviour
             return;
         }
 
-        AdjustPositionMethod?.Invoke(_editorInput, new object[] { val });
+        if (AdjustPositionDelegate != null)
+        {
+            AdjustPositionDelegate(_editorInput, val);
+        }
+        else
+        {
+            AdjustPositionMethod?.Invoke(_editorInput, new object[] { val });
+        }
     }
 
     private void OnHScrollbarValueChanged(float val)
@@ -763,10 +848,10 @@ public class ConfigFileEditor : MonoBehaviour
             return;
         }
 
-        _undoStack.Push(_currentContent);
+        _undoStack.Add(_currentContent);
         if (_undoStack.Count > MaxUndoSteps)
         {
-            _undoStack.TrimExcess();
+            _undoStack.RemoveAt(0);
         }
         _redoStack.Clear();
 
@@ -816,31 +901,29 @@ public class ConfigFileEditor : MonoBehaviour
             }
         }
 
-        StringBuilder sb = new StringBuilder(lineCount * 4);
-        for (int i = 1; i <= lineCount; i++)
+        if (lineCount != _cachedLineCount || string.IsNullOrEmpty(_lineNumbersText.text))
         {
-            sb.AppendLine(i.ToString());
+            _cachedLineCount = lineCount;
+            StringBuilder sb = new StringBuilder(lineCount * 6);
+            for (int i = 1; i <= lineCount; i++)
+            {
+                sb.AppendLine(i.ToString());
+            }
+
+            _lineNumbersText.text = sb.ToString();
         }
 
-        _lineNumbersText.text = sb.ToString();
         UpdateStatusFooter();
     }
 
     private void UpdateStatusFooter()
     {
-        if (_statusFooter == null || _fileItem == null)
+        if (_statusStatsText == null || _statusPathText == null || _fileItem == null)
         {
             return;
         }
 
-        int lineCount = 1;
-        for (int i = 0; i < _currentContent.Length; i++)
-        {
-            if (_currentContent[i] == '\n')
-            {
-                lineCount++;
-            }
-        }
+        int lineCount = _cachedLineCount > 0 ? _cachedLineCount : 1;
 
         int caretLine = 1;
         int caretCol = 1;
@@ -861,7 +944,8 @@ public class ConfigFileEditor : MonoBehaviour
             }
         }
 
-        _statusFooter.text = $"UTF-8  |  {_fileItem.RelativePath}  |  Ln {caretLine}, Col {caretCol}  |  Lines: {lineCount}  |  {_fileItem.FormattedSize}";
+        _statusStatsText.text = $"UTF-8  |  Ln {caretLine}, Col {caretCol}  |  Lines: {lineCount}  |  {_fileItem.FormattedSize}";
+        _statusPathText.text = _fileItem.RelativePath;
     }
 
     private void ValidateSyntaxIfNeeded()
@@ -956,8 +1040,10 @@ public class ConfigFileEditor : MonoBehaviour
         }
 
         _isApplyingHistory = true;
-        _redoStack.Push(_currentContent);
-        _currentContent = _undoStack.Pop();
+        _redoStack.Add(_currentContent);
+        int lastIdx = _undoStack.Count - 1;
+        _currentContent = _undoStack[lastIdx];
+        _undoStack.RemoveAt(lastIdx);
         _editorInput.text = _currentContent;
         _isApplyingHistory = false;
 
@@ -974,8 +1060,14 @@ public class ConfigFileEditor : MonoBehaviour
         }
 
         _isApplyingHistory = true;
-        _undoStack.Push(_currentContent);
-        _currentContent = _redoStack.Pop();
+        _undoStack.Add(_currentContent);
+        if (_undoStack.Count > MaxUndoSteps)
+        {
+            _undoStack.RemoveAt(0);
+        }
+        int lastIdx = _redoStack.Count - 1;
+        _currentContent = _redoStack[lastIdx];
+        _redoStack.RemoveAt(lastIdx);
         _editorInput.text = _currentContent;
         _isApplyingHistory = false;
 
@@ -1000,7 +1092,11 @@ public class ConfigFileEditor : MonoBehaviour
         string formatted = JsonValidator.FormatJson(_currentContent);
         if (formatted != _currentContent)
         {
-            _undoStack.Push(_currentContent);
+            _undoStack.Add(_currentContent);
+            if (_undoStack.Count > MaxUndoSteps)
+            {
+                _undoStack.RemoveAt(0);
+            }
             _redoStack.Clear();
             _currentContent = formatted;
             _editorInput.text = formatted;
@@ -1107,7 +1203,11 @@ public class ConfigFileEditor : MonoBehaviour
                 "Revert",
                 () =>
                 {
-                    _undoStack.Push(_currentContent);
+                    _undoStack.Add(_currentContent);
+                    if (_undoStack.Count > MaxUndoSteps)
+                    {
+                        _undoStack.RemoveAt(0);
+                    }
                     _redoStack.Clear();
                     _currentContent = _originalContent;
                     if (_editorInput != null)
@@ -1165,9 +1265,37 @@ public class ConfigFileEditor : MonoBehaviour
 
     private void OnDestroy()
     {
-        if (_editorInput != null && _editorInput.textComponent != null)
+        StopAllCoroutines();
+        _syncGutterRoutine = null;
+
+        if (_editorInput != null)
         {
-            _editorInput.textComponent.OnPreRenderText -= OnTextPreRender;
+            _editorInput.onValueChanged.RemoveListener(OnContentChanged);
+            _editorInput.onEndEdit.RemoveListener(OnContentCommitted);
+
+            if (_editorInput.textComponent != null)
+            {
+                _editorInput.textComponent.OnPreRenderText -= OnTextPreRender;
+            }
         }
+
+        if (_editorScrollbar != null)
+        {
+            _editorScrollbar.onValueChanged.RemoveListener(OnScrollbarValueChanged);
+        }
+
+        if (_editorHScrollbar != null)
+        {
+            _editorHScrollbar.onValueChanged.RemoveListener(OnHScrollbarValueChanged);
+        }
+
+        _undoStack.Clear();
+        _redoStack.Clear();
+        _currentContent = string.Empty;
+        _originalContent = string.Empty;
+        _statusStatsText = null;
+        _statusPathText = null;
+        _fileItem = null;
+        _onBackRequested = null;
     }
 }
