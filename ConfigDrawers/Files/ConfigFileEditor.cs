@@ -296,6 +296,9 @@ public class ConfigFileEditor : MonoBehaviour
         _lineNumbersText.alignment = TextAlignmentOptions.TopRight;
         _lineNumbersText.textWrappingMode = TextWrappingModes.NoWrap;
         _lineNumbersText.overflowMode = TextOverflowModes.Overflow;
+        _lineNumbersText.maxVisibleCharacters = int.MaxValue;
+        _lineNumbersText.maxVisibleWords = int.MaxValue;
+        _lineNumbersText.maxVisibleLines = int.MaxValue;
         _lineNumbersText.raycastTarget = false;
         gutterTextObj.SetActive(true);
 
@@ -361,6 +364,9 @@ public class ConfigFileEditor : MonoBehaviour
         if (_editorInput.textComponent != null)
         {
             _editorInput.textComponent.textWrappingMode = TextWrappingModes.NoWrap;
+            _editorInput.textComponent.maxVisibleCharacters = int.MaxValue;
+            _editorInput.textComponent.maxVisibleWords = int.MaxValue;
+            _editorInput.textComponent.maxVisibleLines = int.MaxValue;
             _editorInput.textComponent.OnPreRenderText -= OnTextPreRender;
             _editorInput.textComponent.OnPreRenderText += OnTextPreRender;
         }

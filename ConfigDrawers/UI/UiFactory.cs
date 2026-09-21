@@ -247,6 +247,9 @@ public static class UiFactory
         textTmp.textWrappingMode = multiline && wrapText ? TextWrappingModes.Normal : TextWrappingModes.NoWrap;
         textTmp.richText = false;
         textTmp.overflowMode = TextOverflowModes.Overflow;
+        textTmp.maxVisibleCharacters = int.MaxValue;
+        textTmp.maxVisibleWords = int.MaxValue;
+        textTmp.maxVisibleLines = int.MaxValue;
         textTmp.raycastTarget = false;
         textObj.SetActive(true);
 
