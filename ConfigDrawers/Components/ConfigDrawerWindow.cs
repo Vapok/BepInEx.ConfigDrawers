@@ -100,7 +100,7 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
         BuildSearchBar(container);
         BuildContentArea(container);
         BuildFooter(container);
-        ConfirmationModal.Attach(gameObject);
+        ConfirmationModal.Attach(drawerObj);
 
         ConfigDrawerConfig.ToggleKeybind.SettingChanged += (_, _) =>
         {
