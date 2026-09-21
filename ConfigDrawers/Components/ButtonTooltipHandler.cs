@@ -16,7 +16,13 @@ public class ButtonTooltipHandler : MonoBehaviour, IPointerEnterHandler, IPointe
     private static ButtonTooltipHandler? _activeHandler;
     private static GameObject? _tooltipRoot;
     private static TextMeshProUGUI? _text;
+
     private const float HoverDelaySeconds = 0.2f;
+    private const float TooltipTargetWidth = 200f;
+    private const float TooltipMinWidth = 140f;
+    private const float TooltipMinHeight = 28f;
+    private const float ScreenPadding = 10f;
+    private const float OffsetPadding = 6f;
 
     public void Bind(string headerText, string bodyText)
     {
@@ -31,7 +37,7 @@ public class ButtonTooltipHandler : MonoBehaviour, IPointerEnterHandler, IPointe
             throw new ArgumentNullException(nameof(target));
         }
 
-        var handler = target.AddComponent<ButtonTooltipHandler>();
+        ButtonTooltipHandler handler = target.AddComponent<ButtonTooltipHandler>();
         handler.Bind(headerText, bodyText);
         return handler;
     }
@@ -80,6 +86,11 @@ public class ButtonTooltipHandler : MonoBehaviour, IPointerEnterHandler, IPointe
         ClearHover();
     }
 
+    private void OnDestroy()
+    {
+        ClearHover();
+    }
+
     private IEnumerator ShowAfterDelay()
     {
         yield return new WaitForSecondsRealtime(HoverDelaySeconds);
@@ -91,7 +102,7 @@ public class ButtonTooltipHandler : MonoBehaviour, IPointerEnterHandler, IPointe
     {
         _activeHandler = this;
 
-        var canvas = GetComponentInParent<Canvas>();
+        Canvas? canvas = GetComponentInParent<Canvas>();
         if (canvas == null)
         {
             return;
@@ -103,42 +114,41 @@ public class ButtonTooltipHandler : MonoBehaviour, IPointerEnterHandler, IPointe
             return;
         }
 
-        var headerFormatted = $"<color=#{ColorUtility.ToHtmlStringRGB(CyberPalette.ColorIceBlueBright)}><b>{_headerText}</b></color>";
+        string headerFormatted = $"<color=#{ColorUtility.ToHtmlStringRGB(CyberPalette.ColorIceBlueBright)}><b>{_headerText}</b></color>";
         _text.text = string.IsNullOrEmpty(_headerText)
             ? $"<color=#c8dbee>{_bodyText}</color>"
             : $"{headerFormatted}\n<color=#c8dbee>{_bodyText}</color>";
 
         _text.ForceMeshUpdate();
 
-        const float targetWidth = 200f;
-        var preferred = _text.GetPreferredValues(targetWidth - 16f, 1000f);
-        var width = Mathf.Min(targetWidth, preferred.x + 20f);
-        var height = preferred.y + 14f;
+        Vector2 preferred = _text.GetPreferredValues(TooltipTargetWidth - 16f, 1000f);
+        float width = Mathf.Min(TooltipTargetWidth, preferred.x + 20f);
+        float height = preferred.y + 14f;
 
-        var rt = _tooltipRoot.GetComponent<RectTransform>();
-        rt.sizeDelta = new Vector2(Mathf.Max(width, 140f), Mathf.Max(height, 28f));
+        RectTransform rt = _tooltipRoot.GetComponent<RectTransform>();
+        rt.sizeDelta = new Vector2(Mathf.Max(width, TooltipMinWidth), Mathf.Max(height, TooltipMinHeight));
 
-        var buttonRT = (RectTransform)transform;
-        var corners = new Vector3[4];
+        RectTransform buttonRT = (RectTransform)transform;
+        Vector3[] corners = new Vector3[4];
         buttonRT.GetWorldCorners(corners);
-        var buttonBottomCenter = new Vector3((corners[0].x + corners[3].x) * 0.5f, corners[0].y, 0f);
+        Vector3 buttonBottomCenter = new Vector3((corners[0].x + corners[3].x) * 0.5f, corners[0].y, 0f);
 
-        var scale = canvas.scaleFactor > 0.01f ? canvas.scaleFactor : 1f;
-        var pixelW = rt.sizeDelta.x * scale;
-        var pixelH = rt.sizeDelta.y * scale;
+        float scale = canvas.scaleFactor > 0.01f ? canvas.scaleFactor : 1f;
+        float pixelW = rt.sizeDelta.x * scale;
+        float pixelH = rt.sizeDelta.y * scale;
 
         rt.pivot = new Vector2(0.5f, 1f);
-        var posX = buttonBottomCenter.x;
-        var posY = buttonBottomCenter.y - 6f * scale;
+        float posX = buttonBottomCenter.x;
+        float posY = buttonBottomCenter.y - OffsetPadding * scale;
 
-        if (posY - pixelH < 10f)
+        if (posY - pixelH < ScreenPadding)
         {
             rt.pivot = new Vector2(0.5f, 0f);
-            posY = corners[1].y + 6f * scale;
+            posY = corners[1].y + OffsetPadding * scale;
         }
 
-        var minX = 10f + pixelW * 0.5f;
-        var maxX = Screen.width - 10f - pixelW * 0.5f;
+        float minX = ScreenPadding + pixelW * 0.5f;
+        float maxX = Screen.width - ScreenPadding - pixelW * 0.5f;
         posX = Mathf.Clamp(posX, minX, maxX);
 
         rt.position = new Vector3(posX, posY, 0f);
@@ -154,6 +164,17 @@ public class ButtonTooltipHandler : MonoBehaviour, IPointerEnterHandler, IPointe
         }
     }
 
+    public static void DestroyTooltip()
+    {
+        _activeHandler = null;
+        if (_tooltipRoot != null)
+        {
+            Destroy(_tooltipRoot);
+            _tooltipRoot = null;
+            _text = null;
+        }
+    }
+
     private static void EnsureTooltipCreated(Canvas canvas)
     {
         if (_tooltipRoot != null)
@@ -164,36 +185,36 @@ public class ButtonTooltipHandler : MonoBehaviour, IPointerEnterHandler, IPointe
         _tooltipRoot = new GameObject("ButtonCyberTooltip", typeof(RectTransform), typeof(Image), typeof(CanvasGroup));
         _tooltipRoot.transform.SetParent(canvas.transform, false);
 
-        var cg = _tooltipRoot.GetComponent<CanvasGroup>();
+        CanvasGroup cg = _tooltipRoot.GetComponent<CanvasGroup>();
         cg.blocksRaycasts = false;
         cg.interactable = false;
 
-        var borderImg = _tooltipRoot.GetComponent<Image>();
+        Image borderImg = _tooltipRoot.GetComponent<Image>();
         borderImg.color = CyberPalette.ColorIceBlueBright;
         borderImg.raycastTarget = false;
 
-        var fillGo = new GameObject("Fill", typeof(RectTransform), typeof(Image));
+        GameObject fillGo = new GameObject("Fill", typeof(RectTransform), typeof(Image));
         fillGo.transform.SetParent(_tooltipRoot.transform, false);
-        var fillRT = fillGo.GetComponent<RectTransform>();
+        RectTransform fillRT = fillGo.GetComponent<RectTransform>();
         fillRT.anchorMin = Vector2.zero;
         fillRT.anchorMax = Vector2.one;
         fillRT.offsetMin = new Vector2(1f, 1f);
         fillRT.offsetMax = new Vector2(-1f, -1f);
 
-        var fillImg = fillGo.GetComponent<Image>();
+        Image fillImg = fillGo.GetComponent<Image>();
         fillImg.color = CyberPalette.ColorVoidBlack;
         fillImg.raycastTarget = false;
 
-        var textGo = new GameObject("Text", typeof(RectTransform));
+        GameObject textGo = new GameObject("Text", typeof(RectTransform));
         textGo.transform.SetParent(fillGo.transform, false);
-        var tRT = textGo.GetComponent<RectTransform>();
+        RectTransform tRT = textGo.GetComponent<RectTransform>();
         tRT.anchorMin = Vector2.zero;
         tRT.anchorMax = Vector2.one;
         tRT.offsetMin = new Vector2(8f, 5f);
         tRT.offsetMax = new Vector2(-8f, -5f);
 
         _text = textGo.AddComponent<TextMeshProUGUI>();
-        var standardFont = UiFactory.ResolveFont();
+        TMP_FontAsset? standardFont = UIFonts.GetPrimaryFont();
         if (standardFont != null)
         {
             _text.font = standardFont;

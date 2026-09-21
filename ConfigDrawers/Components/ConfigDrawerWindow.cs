@@ -909,9 +909,9 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
                 }
             }
         }
-        catch
+        catch (Exception ex)
         {
-            // Soft failure ignore non-Valheim games
+            ConfigDrawers.Log?.LogDebug($"[ConfigDrawers] Non-Valheim host input check: {ex.Message}");
         }
     }
 

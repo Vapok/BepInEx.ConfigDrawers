@@ -16,7 +16,13 @@ public class StatusIconTooltipHandler : MonoBehaviour, IPointerEnterHandler, IPo
     private static StatusIconTooltipHandler? _activeHandler;
     private static GameObject? _tooltipRoot;
     private static TextMeshProUGUI? _text;
+
     private const float HoverDelaySeconds = 0.2f;
+    private const float TooltipTargetWidth = 270f;
+    private const float TooltipMinWidth = 220f;
+    private const float TooltipMinHeight = 36f;
+    private const float ScreenPadding = 10f;
+    private const float OffsetPadding = 6f;
 
     public void Bind(SettingEntry entry)
     {
@@ -60,6 +66,14 @@ public class StatusIconTooltipHandler : MonoBehaviour, IPointerEnterHandler, IPo
         }
     }
 
+    private void OnDestroy()
+    {
+        if (_activeHandler == this)
+        {
+            HideTooltip();
+        }
+    }
+
     private void Update()
     {
         if (_activeHandler == this && _tooltipRoot != null && _tooltipRoot.activeSelf && _entry != null)
@@ -82,16 +96,16 @@ public class StatusIconTooltipHandler : MonoBehaviour, IPointerEnterHandler, IPo
             return;
         }
 
-        var isEditable = _entry.CanEdit;
-        var header = isEditable
+        bool isEditable = _entry.CanEdit;
+        string header = isEditable
             ? "<color=#64f0fc><b>[ ⇄ ] SERVER SYNCED:</b></color>"
             : "<color=#e5a93c><b>[ 🔒 ] SERVER ENFORCED:</b></color>";
 
-        var desc = isEditable
+        string desc = isEditable
             ? "Synchronized with server. You have admin access to modify this setting globally."
             : "Locked by server configuration. Only server administrators can change this value.";
 
-        var valStr = _entry.ConfigEntry?.BoxedValue?.ToString() ?? "null";
+        string valStr = _entry.ConfigEntry?.BoxedValue?.ToString() ?? "null";
         if (_entry.SettingType == typeof(string))
         {
             valStr = valStr.Replace("\r\n", " ").Replace("\n", " ").Replace("\r", " ");
@@ -106,7 +120,7 @@ public class StatusIconTooltipHandler : MonoBehaviour, IPointerEnterHandler, IPo
             valStr = valStr.Substring(0, 37) + "...";
         }
 
-        var valInfo = $"<color=#8ba2b5>Setting:</color> <color=#c8dbee>{_entry.DispName}</color>\n<color=#8ba2b5>Current Value:</color> <color=#5cfbde><b>{valStr}</b></color>";
+        string valInfo = $"<color=#8ba2b5>Setting:</color> <color=#c8dbee>{_entry.DispName}</color>\n<color=#8ba2b5>Current Value:</color> <color=#5cfbde><b>{valStr}</b></color>";
 
         _text.text = $"{header}\n<color=#c8dbee>{desc}</color>\n\n{valInfo}";
     }
@@ -120,7 +134,7 @@ public class StatusIconTooltipHandler : MonoBehaviour, IPointerEnterHandler, IPo
 
         _activeHandler = this;
 
-        var canvas = GetComponentInParent<Canvas>();
+        Canvas? canvas = GetComponentInParent<Canvas>();
         if (canvas == null)
         {
             return;
@@ -135,35 +149,34 @@ public class StatusIconTooltipHandler : MonoBehaviour, IPointerEnterHandler, IPo
         UpdateContent();
         _text.ForceMeshUpdate();
 
-        const float targetWidth = 270f;
-        var preferred = _text.GetPreferredValues(targetWidth - 16f, 1000f);
-        var width = Mathf.Min(targetWidth, preferred.x + 20f);
-        var height = preferred.y + 16f;
+        Vector2 preferred = _text.GetPreferredValues(TooltipTargetWidth - 16f, 1000f);
+        float width = Mathf.Min(TooltipTargetWidth, preferred.x + 20f);
+        float height = preferred.y + 16f;
 
-        var rt = _tooltipRoot.GetComponent<RectTransform>();
-        rt.sizeDelta = new Vector2(Mathf.Max(width, 220f), Mathf.Max(height, 36f));
+        RectTransform rt = _tooltipRoot.GetComponent<RectTransform>();
+        rt.sizeDelta = new Vector2(Mathf.Max(width, TooltipMinWidth), Mathf.Max(height, TooltipMinHeight));
 
-        var iconRT = (RectTransform)transform;
-        var corners = new Vector3[4];
+        RectTransform iconRT = (RectTransform)transform;
+        Vector3[] corners = new Vector3[4];
         iconRT.GetWorldCorners(corners);
-        var iconTopRight = corners[2];
-        var iconBottomRight = corners[3];
+        Vector3 iconTopRight = corners[2];
+        Vector3 iconBottomRight = corners[3];
 
-        var scale = canvas.scaleFactor > 0.01f ? canvas.scaleFactor : 1f;
-        var pixelW = rt.sizeDelta.x * scale;
-        var pixelH = rt.sizeDelta.y * scale;
+        float scale = canvas.scaleFactor > 0.01f ? canvas.scaleFactor : 1f;
+        float pixelW = rt.sizeDelta.x * scale;
+        float pixelH = rt.sizeDelta.y * scale;
 
         rt.pivot = new Vector2(1f, 0f);
-        var posX = iconTopRight.x;
-        var posY = iconTopRight.y + 6f * scale;
+        float posX = iconTopRight.x;
+        float posY = iconTopRight.y + OffsetPadding * scale;
 
-        if (posY + pixelH > Screen.height - 10f)
+        if (posY + pixelH > Screen.height - ScreenPadding)
         {
             rt.pivot = new Vector2(1f, 1f);
-            posY = iconBottomRight.y - 6f * scale;
+            posY = iconBottomRight.y - OffsetPadding * scale;
         }
 
-        if (posX - pixelW < 10f)
+        if (posX - pixelW < ScreenPadding)
         {
             rt.pivot = new Vector2(0f, rt.pivot.y);
             posX = corners[1].x;
@@ -192,36 +205,36 @@ public class StatusIconTooltipHandler : MonoBehaviour, IPointerEnterHandler, IPo
         _tooltipRoot = new GameObject("SyncCyberTooltip", typeof(RectTransform), typeof(Image), typeof(CanvasGroup));
         _tooltipRoot.transform.SetParent(canvas.transform, false);
 
-        var cg = _tooltipRoot.GetComponent<CanvasGroup>();
+        CanvasGroup cg = _tooltipRoot.GetComponent<CanvasGroup>();
         cg.blocksRaycasts = false;
         cg.interactable = false;
 
-        var borderImg = _tooltipRoot.GetComponent<Image>();
+        Image borderImg = _tooltipRoot.GetComponent<Image>();
         borderImg.color = CyberPalette.ColorIceBlueBright;
         borderImg.raycastTarget = false;
 
-        var fillGo = new GameObject("Fill", typeof(RectTransform), typeof(Image));
+        GameObject fillGo = new GameObject("Fill", typeof(RectTransform), typeof(Image));
         fillGo.transform.SetParent(_tooltipRoot.transform, false);
-        var fillRT = fillGo.GetComponent<RectTransform>();
+        RectTransform fillRT = fillGo.GetComponent<RectTransform>();
         fillRT.anchorMin = Vector2.zero;
         fillRT.anchorMax = Vector2.one;
         fillRT.offsetMin = new Vector2(1f, 1f);
         fillRT.offsetMax = new Vector2(-1f, -1f);
 
-        var fillImg = fillGo.GetComponent<Image>();
+        Image fillImg = fillGo.GetComponent<Image>();
         fillImg.color = CyberPalette.ColorVoidBlack;
         fillImg.raycastTarget = false;
 
-        var textGo = new GameObject("Text", typeof(RectTransform));
+        GameObject textGo = new GameObject("Text", typeof(RectTransform));
         textGo.transform.SetParent(fillGo.transform, false);
-        var tRT = textGo.GetComponent<RectTransform>();
+        RectTransform tRT = textGo.GetComponent<RectTransform>();
         tRT.anchorMin = Vector2.zero;
         tRT.anchorMax = Vector2.one;
         tRT.offsetMin = new Vector2(8f, 6f);
         tRT.offsetMax = new Vector2(-8f, -6f);
 
         _text = textGo.AddComponent<TextMeshProUGUI>();
-        var standardFont = UiFactory.ResolveFont();
+        TMP_FontAsset? standardFont = UIFonts.GetPrimaryFont();
         if (standardFont != null)
         {
             _text.font = standardFont;

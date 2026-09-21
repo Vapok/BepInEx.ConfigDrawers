@@ -6,43 +6,50 @@ using HarmonyLib;
 namespace BepInEx.ConfigDrawers.Patches;
 
 [HarmonyPatch]
-public static class ConfigurationManagerRightColumnWidthPatch
+internal static class ConfigurationManagerRightColumnWidthPatch
 {
-    public static bool Prepare()
+    private const int MinimumRightColumnWidth = 200;
+    private const int TargetRightColumnWidth = 350;
+
+    [HarmonyPrepare]
+    internal static bool Prepare()
     {
         return AccessTools.TypeByName("ConfigurationManager.ConfigurationManager") != null;
     }
 
-    public static IEnumerable<MethodBase> TargetMethods()
+    [HarmonyTargetMethods]
+    internal static IEnumerable<MethodBase> TargetMethods()
     {
-        var targets = new List<MethodBase>();
-        foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+        List<MethodBase> targets = new();
+        Assembly[] assemblies = AppDomain.CurrentDomain.GetAssemblies();
+        foreach (Assembly assembly in assemblies)
         {
             try
             {
-                var cmType = assembly.GetType("ConfigurationManager.ConfigurationManager");
+                Type? cmType = assembly.GetType("ConfigurationManager.ConfigurationManager");
                 if (cmType != null)
                 {
-                    var prop = AccessTools.PropertyGetter(cmType, "RightColumnWidth");
+                    MethodInfo? prop = AccessTools.PropertyGetter(cmType, "RightColumnWidth");
                     if (prop != null)
                     {
                         targets.Add(prop);
                     }
                 }
             }
-            catch
+            catch (Exception ex)
             {
-                // Soft skip restricted dynamic assemblies
+                ConfigDrawers.Log?.LogDebug($"[ConfigDrawers] Dynamic assembly inspection skipped {assembly.FullName}: {ex.Message}");
             }
         }
         return targets;
     }
 
-    public static void Postfix(ref int __result)
+    [HarmonyPostfix]
+    private static void Postfix(ref int __result)
     {
-        if (__result <= 0 || __result < 200)
+        if (__result <= 0 || __result < MinimumRightColumnWidth)
         {
-            __result = 350;
+            __result = TargetRightColumnWidth;
         }
     }
 }

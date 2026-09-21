@@ -1,3 +1,4 @@
+using System;
 using BepInEx;
 using BepInEx.Bootstrap;
 using BepInEx.ConfigDrawers.Components;
@@ -23,18 +24,18 @@ public class ConfigDrawers : BaseUnityPlugin
         Instance = this;
         ConfigDrawerConfig.Initialize(Config);
 
-        var harmony = new Harmony(ModGuid);
+        Harmony harmony = new(ModGuid);
         harmony.PatchAll(typeof(ConfigDrawers).Assembly);
 
         LegacyManagerSuppressor.CheckAndSuppress(Logger);
-        UI.UiFactory.ResolveFont();
+        UI.UIFonts.GetPrimaryFont();
         InitializeWindow();
         AttachCompatibilityShim();
     }
 
     private void InitializeWindow()
     {
-        var windowObj = new GameObject("ConfigDrawer_Window", typeof(ConfigDrawerWindow));
+        GameObject windowObj = new("ConfigDrawer_Window", typeof(ConfigDrawerWindow));
         DontDestroyOnLoad(windowObj);
     }
 
@@ -44,16 +45,16 @@ public class ConfigDrawers : BaseUnityPlugin
         {
             if (Chainloader.ManagerObject != null)
             {
-                var shim = Chainloader.ManagerObject.GetComponent<ConfigurationManager.ConfigurationManager>();
+                ConfigurationManager.ConfigurationManager? shim = Chainloader.ManagerObject.GetComponent<ConfigurationManager.ConfigurationManager>();
                 if (shim == null)
                 {
                     Chainloader.ManagerObject.AddComponent<ConfigurationManager.ConfigurationManager>();
                 }
             }
         }
-        catch
+        catch (Exception ex)
         {
-            // Soft failure ignore non-standard host environments
+            Logger.LogWarning($"Failed to attach compatibility shim: {ex.Message}");
         }
     }
 

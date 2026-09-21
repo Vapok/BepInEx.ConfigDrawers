@@ -3,13 +3,15 @@ using System.Reflection;
 using BepInEx.Bootstrap;
 using BepInEx.Logging;
 using BepInEx.ConfigDrawers.Configuration;
+using HarmonyLib;
 using UnityEngine;
 
 namespace BepInEx.ConfigDrawers.Patches;
 
-public static class LegacyManagerSuppressor
+internal static class LegacyManagerSuppressor
 {
     private static bool _suppressed;
+    private const int DefaultLegacyColumnWidth = 350;
 
     public static void CheckAndSuppress(ManualLogSource logger)
     {
@@ -25,18 +27,19 @@ public static class LegacyManagerSuppressor
                 return;
             }
 
-            var components = Chainloader.ManagerObject.GetComponents<MonoBehaviour>();
-            foreach (var comp in components)
+            MonoBehaviour[] components = Chainloader.ManagerObject.GetComponents<MonoBehaviour>();
+            foreach (MonoBehaviour comp in components)
             {
                 if (comp == null)
                 {
                     continue;
                 }
 
-                var type = comp.GetType();
-                if (type.FullName == "ConfigurationManager.ConfigurationManager" && comp.GetType().Assembly != typeof(ConfigDrawers).Assembly)
+                Type type = comp.GetType();
+                if (type.FullName == "ConfigurationManager.ConfigurationManager" && type.Assembly != typeof(ConfigDrawers).Assembly)
                 {
-                    SuppressComponent(comp, type, logger);
+                    DisableLegacyHotkeyAndWindow(comp, type, logger);
+                    SetLegacyRightColumnWidth(comp, type, DefaultLegacyColumnWidth);
                     _suppressed = true;
                 }
             }
@@ -47,32 +50,37 @@ public static class LegacyManagerSuppressor
         }
     }
 
-    private static void SuppressComponent(MonoBehaviour component, Type type, ManualLogSource logger)
+    private static void DisableLegacyHotkeyAndWindow(MonoBehaviour component, Type type, ManualLogSource logger)
+    {
+        if (TrySetProperty(component, type, "OverrideHotkey", true))
+        {
+            logger.LogInfo("Successfully suppressed legacy ConfigurationManager hotkey listener.");
+        }
+
+        TrySetProperty(component, type, "DisplayingWindow", false);
+    }
+
+    private static void SetLegacyRightColumnWidth(MonoBehaviour component, Type type, int width)
+    {
+        TrySetProperty(component, type, "RightColumnWidth", width);
+    }
+
+    private static bool TrySetProperty(object target, Type type, string propertyName, object value)
     {
         try
         {
-            var overrideProp = type.GetProperty("OverrideHotkey", BindingFlags.Instance | BindingFlags.Public);
-            if (overrideProp != null && overrideProp.CanWrite)
+            PropertyInfo? property = AccessTools.Property(type, propertyName);
+            if (property != null && property.CanWrite)
             {
-                overrideProp.SetValue(component, true, null);
-                logger.LogInfo("Successfully suppressed legacy ConfigurationManager hotkey listener.");
-            }
-
-            var displayingProp = type.GetProperty("DisplayingWindow", BindingFlags.Instance | BindingFlags.Public);
-            if (displayingProp != null && displayingProp.CanWrite)
-            {
-                displayingProp.SetValue(component, false, null);
-            }
-
-            var rightColProp = type.GetProperty("RightColumnWidth", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
-            if (rightColProp != null && rightColProp.CanWrite)
-            {
-                rightColProp.SetValue(component, 350, null);
+                property.SetValue(target, value, null);
+                return true;
             }
         }
         catch (Exception ex)
         {
-            logger.LogWarning($"Failed to suppress legacy component: {ex.Message}");
+            ConfigDrawers.Log?.LogDebug($"[ConfigDrawers] TrySetProperty failed for {propertyName}: {ex.Message}");
         }
+
+        return false;
     }
 }

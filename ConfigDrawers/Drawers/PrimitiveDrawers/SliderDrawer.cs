@@ -157,8 +157,9 @@ public static class SliderDrawer
         {
             return (float)Convert.ToDouble(entry.ConfigEntry.BoxedValue, CultureInfo.InvariantCulture);
         }
-        catch
+        catch (Exception ex)
         {
+            ConfigDrawers.Log?.LogWarning($"[ConfigDrawers] Failed converting slider value for {entry.Key}: {ex.Message}");
             return 0f;
         }
     }

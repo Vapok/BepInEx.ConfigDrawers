@@ -185,8 +185,9 @@ public static class VectorDrawer
 
             return (x, y, z);
         }
-        catch
+        catch (Exception ex)
         {
+            ConfigDrawers.Log?.LogWarning($"[ConfigDrawers] Failed reading vector components: {ex.Message}");
             return (0f, 0f, 0f);
         }
     }
@@ -277,9 +278,9 @@ public static class VectorDrawer
                 entry.SetValue(inst);
             }
         }
-        catch
+        catch (Exception ex)
         {
-            // Soft failure ignore
+            ConfigDrawers.Log?.LogWarning($"[ConfigDrawers] Failed committing vector value for {entry.Key}: {ex.Message}");
         }
     }
 

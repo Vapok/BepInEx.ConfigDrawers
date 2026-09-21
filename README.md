@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <strong>Next-Generation In-Game Configuration Manager for BepInEx 5</strong>
+  <strong>In-game configuration manager for BepInEx 5 plugins.</strong>
 </p>
 
 <p align="center">
@@ -19,74 +19,73 @@
 
 ## Overview
 
-**BepInEx.ConfigDrawers** is a modern, lightweight, high-performance in-game Configuration Manager built from the ground up to replace dated configuration managers.
-
-Featuring a sleek **Cyber-Console UI** with neon ice-blue accents, deep obsidian containers, and crisp monospace typography, `BepInEx.ConfigDrawers` slides out effortlessly from the screen edge on demand. It keeps your game world completely visible while giving you precision control over all your installed mods.
+**BepInEx.ConfigDrawers** is an in-game configuration manager for BepInEx 5 plugins built on Unity uGUI. It provides a collapsible drawer interface that docks to either side of your screen or floats as a moveable window, allowing you to edit plugin configurations in real time without obscuring gameplay.
 
 ---
 
-## Key Features
+## Features
 
-- **Smooth Sliding Drawer**: Slides cleanly from the monitor edge. Occupies less than 25% of your screen width, leaving your gameplay and menus visible.
-- **Magnetic Docking & Free Float**: Snap to the left rail, snap to the right rail, or detach and drag freely across the screen with interactive window resize handles.
-- **Auto-Expanding Multiline Editor**: Long strings, lists, formatting tokens, and JSON payloads expand dynamically as you type without clipping or awkward tiny text boxes.
-- **Crisp Monospace Typography**: Built with embedded **Hack** font rendering with Signed Distance Fields (SDF) for ultra-sharp legibility at any resolution.
-- **Cyber Tooltips**: Interactive tooltips across all header buttons, dock modes, scale presets, and setting status indicators.
-- **Precision Color Picker**: Full HSV spectrum picker with real-time swatch preview, manual Hex/RGB inputs, and preset palette swatches.
-- **Smooth Numeric Sliders**: Smooth drag sliders with direct numeric input boxes for surgical precision.
-- **First-Class Data Grids & Tables**: Dedicated visual multi-column tables for complex structures like crafting recipes, upgrade costs, and drop tables.
-- **Live UI Scaling**: Switch dynamically between **Small**, **Normal**, and **Large** font and layout scales (`[ Size: Norm ]`) to comfortably fit 1080p, 1440p, or 4K monitors.
-- **Buffered Input Safety**: No more lost keystrokes or clobbered fields. Full backspace and cursor navigation with clear commit (`Enter` / defocus) and cancel (`Escape`).
-- **Interactive Hotkey Rebinding**: Click `[ F1 ]` (or your configured bind) in the header, press any key on your keyboard, and your new toggle key is instantly active.
-- **Automatic Legacy Suppression**: Gracefully suppresses older IMGUI `ConfigurationManager.dll` hotkeys to eliminate conflicting dual windows while continuing to render their custom drawers inside the modern drawer.
-- **Zero Bloat**: Single-file assembly with embedded resources, zero telemetry, and zero background performance overhead.
+- **Docking & Floating Window**: Dock to the left or right screen rail, or detach into a free-floating draggable window with adjustable width.
+- **Search & Filtering**: Real-time search filter across plugin names, sections, setting keys, and descriptions.
+- **Native Setting Drawers**: Built-in drawer editors for primitives (`bool`, `int`, `float`, `string`, `enum`), vectors (`Vector2`, `Vector3`, `Vector4`), and key shortcuts.
+- **Multiline Text Editor**: Auto-expanding editor for long strings, tokenized format strings, and JSON configurations.
+- **Color Spectrum Picker**: HSV color wheel with hex/RGB inputs and palette swatch presets.
+- **Data Grids & Tables**: Multi-column table views for complex structured settings like recipes and drop lists.
+- **UI Scaling**: Configurable scale presets (Small, Normal, Large) for different screen resolutions.
+- **Hotkey Rebinding**: Click the hotkey button in the header and press any key to rebind the menu toggle shortcut in-game.
+- **ServerSync Integration**: Automatically identifies server-enforced configurations and displays synchronization status indicators.
+- **Legacy IMGUI Compatibility**: Automatically suppresses conflicting legacy `ConfigurationManager.dll` hotkeys while continuing to render legacy custom drawer delegates inside the modern drawer.
 
 ---
 
-## Controls & Usage
+## Controls & Keybinds
 
 | Action | Default Input | Description |
 | :--- | :--- | :--- |
-| **Toggle Drawer** | `F1` | Opens or closes the ConfigDrawers menu. |
-| **Close Drawer** | `Escape` | Closes the drawer (or cancels an active text field edit). |
-| **Commit Edit** | `Enter` / Defocus | Saves and applies the edited value back to the config file. |
+| **Toggle Drawer** | `F1` | Opens or closes the configuration drawer. |
+| **Close / Cancel** | `Escape` | Closes the drawer or cancels the active input field edit. |
+| **Commit Edit** | `Enter` / Defocus | Commits the input change and saves the configuration. |
 | **Dock Left / Right** | `[ Left ]` / `[ Right ]` | Snaps the drawer to the left or right monitor rail. |
-| **Detach / Float** | `[ Float ]` | Detaches the drawer into a free-floating, draggable window. |
-| **Resize Drawer** | Drag Edge Handle | Click and drag the inner border handle to resize the drawer width. |
-| **Cycle UI Scale** | `[ Size: Norm ]` | Toggles between Small (85%), Normal (95%), and Large (108%) scaling. |
-| **Rebind Hotkey** | `[ <Key> ]` | Click the hotkey button in the header and press any key to rebind. |
+| **Float Window** | `[ Float ]` | Detaches the drawer into a free-floating window. |
+| **Resize Width** | Drag Rail Handle | Drag the inner border handle to adjust the drawer width. |
+| **Cycle UI Scale** | `[ Size: Norm ]` | Cycles between Small (85%), Normal (95%), and Large (108%) UI scaling. |
+| **Rebind Toggle Key** | Click Hotkey Button | Click the hotkey button in the header, then press the desired keyboard key. |
 
 ---
 
-## Mod Compatibility & Ecosystem
+## Configuration Settings
 
-`BepInEx.ConfigDrawers` provides 100% ecosystem compatibility:
-- **ServerSync Ready**: Automatically reflects locked server settings with dedicated sync status icons and admin-only safeguards.
-- **Legacy Drawer Bridge**: Seamlessly bridges legacy IMGUI custom drawers into responsive uGUI containers.
-- **Smart TextArea Routing**: Detects legacy `GUILayout.TextArea` single-control drawers and routes them to native auto-expanding uGUI text boxes.
-- **ConfigurationManagerAttributes**: Fully supports categories, order indexes, read-only flags, value ranges, and custom drawer delegates.
+Settings are stored in `BepInEx/config/vapok.bepinex.configdrawers.cfg`:
+
+| Section | Key | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `General` | `ToggleKeybind` | `F1` | Keyboard shortcut to open and close the drawer. |
+| `General` | `DefaultDockPosition` | `Right` | Default dock position on startup (`Left`, `Right`, or `Float`). |
+| `General` | `DrawerWidth` | `380` | Width of the drawer in pixels when docked. |
+| `General` | `UiFontSize` | `Normal` | Font and layout scale (`Small`, `Normal`, or `Large`). |
+| `Compatibility` | `AutoSuppressLegacy` | `true` | Suppresses legacy ConfigurationManager window hotkeys to avoid duplicate windows. |
 
 ---
 
 ## Installation
 
-### Via Thunderstore / r2modman (Recommended)
-1. Install via your mod manager of choice (search for `BepInEx_ConfigDrawers` by **Vapok**).
-2. Launch the game and press `F1`.
+### Thunderstore / Mod Manager (Recommended)
+1. Install `BepInEx.ConfigDrawers` via r2modman or Thunderstore Mod Manager.
+2. Launch the game and press `F1` to open the configuration drawer.
 
 ### Manual Installation
 1. Ensure **BepInEx 5.4.x** is installed.
-2. Download the latest release from [Releases](https://github.com/Vapok/BepInEx.ConfigDrawers/releases).
-3. Place `BepInEx.ConfigDrawers.dll` into your `BepInEx/plugins/` directory.
+2. Download the latest release package from [Releases](https://github.com/Vapok/BepInEx.ConfigDrawers/releases).
+3. Extract `BepInEx.ConfigDrawers.dll` into your `BepInEx/plugins/` directory.
 
 ---
 
 ## Building from Source
 
 Requirements:
-- .NET SDK (supports .NET Framework 4.8 / MSBuild)
-- BepInEx 5.4.x assemblies
-- Unity 6 / TextMeshPro assemblies (included in game references)
+- .NET SDK (supporting .NET Framework 4.8 / MSBuild)
+- BepInEx 5.4.x core libraries
+- Unity / TextMeshPro assemblies
 
 ```bash
 git clone https://github.com/Vapok/BepInEx.ConfigDrawers.git
@@ -98,9 +97,9 @@ dotnet build ConfigDrawers.sln -c Release
 
 ## Author & Community
 
-Created with ❤️ by **Vapok**.
+Maintained by **Vapok**.
 
 - **Website**: [vapok.io](https://vapok.io)
-- **Discord**: [Join the Vapok Gaming Community](https://discord.gg/vapok)
+- **Discord**: [Vapok Gaming Community](https://discord.gg/vapok)
 - **GitHub**: [Vapok/BepInEx.ConfigDrawers](https://github.com/Vapok/BepInEx.ConfigDrawers)
 - **Thunderstore**: [Vapok Mods](https://thunderstore.io/c/valheim/p/Vapok/)

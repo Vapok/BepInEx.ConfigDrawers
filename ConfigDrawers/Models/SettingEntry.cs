@@ -266,9 +266,9 @@ public class SettingEntry
                     break;
             }
         }
-        catch
+        catch (Exception ex)
         {
-            // Defensive ignore invalid tag values
+            ConfigDrawers.Log?.LogDebug($"[ConfigDrawers] Ignored tag {name} on {Key}: {ex.Message}");
         }
     }
 
@@ -281,22 +281,22 @@ public class SettingEntry
 
         try
         {
-            var type = _cmaTagObject.GetType();
-            var prop = type.GetProperty("IsUnlocked", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+            Type type = _cmaTagObject.GetType();
+            PropertyInfo? prop = type.GetProperty("IsUnlocked", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
             if (prop != null && prop.GetValue(_cmaTagObject, null) is bool unlocked)
             {
                 return unlocked;
             }
 
-            var field = type.GetField("IsUnlocked", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+            FieldInfo? field = type.GetField("IsUnlocked", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
             if (field != null && field.GetValue(_cmaTagObject) is bool unlockedField)
             {
                 return unlockedField;
             }
         }
-        catch
+        catch (Exception ex)
         {
-            // Soft failure ignore
+            ConfigDrawers.Log?.LogDebug($"[ConfigDrawers] Dynamic unlocked check failed for {Key}: {ex.Message}");
         }
 
         return false;
@@ -313,30 +313,30 @@ public class SettingEntry
 
         try
         {
-            var znetType = Type.GetType("ZNet, assembly_valheim");
+            Type? znetType = Type.GetType("ZNet, assembly_valheim");
             if (znetType == null)
             {
                 _cachedAdmin = true;
                 return true;
             }
 
-            var instanceProp = znetType.GetProperty("instance", BindingFlags.Static | BindingFlags.Public)
-                            ?? znetType.GetProperty("m_instance", BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
-            var instance = instanceProp?.GetValue(null);
+            PropertyInfo? instanceProp = znetType.GetProperty("instance", BindingFlags.Static | BindingFlags.Public)
+                                      ?? znetType.GetProperty("m_instance", BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
+            object? instance = instanceProp?.GetValue(null);
             if (instance == null)
             {
                 _cachedAdmin = true;
                 return true;
             }
 
-            var adminOrHostMethod = znetType.GetMethod("LocalPlayerIsAdminOrHost", BindingFlags.Instance | BindingFlags.Public);
+            MethodInfo? adminOrHostMethod = znetType.GetMethod("LocalPlayerIsAdminOrHost", BindingFlags.Instance | BindingFlags.Public);
             if (adminOrHostMethod != null)
             {
                 _cachedAdmin = (bool)adminOrHostMethod.Invoke(instance, null);
                 return _cachedAdmin;
             }
 
-            var isServerMethod = znetType.GetMethod("IsServer", BindingFlags.Instance | BindingFlags.Public);
+            MethodInfo? isServerMethod = znetType.GetMethod("IsServer", BindingFlags.Instance | BindingFlags.Public);
             if (isServerMethod != null)
             {
                 _cachedAdmin = (bool)isServerMethod.Invoke(instance, null);
@@ -346,8 +346,9 @@ public class SettingEntry
             _cachedAdmin = true;
             return true;
         }
-        catch
+        catch (Exception ex)
         {
+            ConfigDrawers.Log?.LogDebug($"[ConfigDrawers] Admin check exception fallback: {ex.Message}");
             _cachedAdmin = true;
             return true;
         }
@@ -489,16 +490,17 @@ public class SettingEntry
                         }
                     }
                 }
-                catch
+                catch (Exception ex)
                 {
-                    // Ignore unresolvable token offsets
+                    ConfigDrawers.Log?.LogDebug($"[ConfigDrawers] Token inspection skipped: {ex.Message}");
                 }
             }
 
             return hasTextArea && !hasOtherControls;
         }
-        catch
+        catch (Exception ex)
         {
+            ConfigDrawers.Log?.LogDebug($"[ConfigDrawers] TextArea detection failed: {ex.Message}");
             return false;
         }
     }
