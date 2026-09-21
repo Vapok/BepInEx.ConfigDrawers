@@ -16,6 +16,9 @@ public class StatusIconTooltipHandler : MonoBehaviour, IPointerEnterHandler, IPo
     private static StatusIconTooltipHandler? _activeHandler;
     private static GameObject? _tooltipRoot;
     private static TextMeshProUGUI? _text;
+    private static SettingEntry? _lastEntry;
+    private static bool? _lastCanEdit;
+    private static object? _lastBoxedValue;
 
     private const float HoverDelaySeconds = 0.2f;
     private const float TooltipTargetWidth = 270f;
@@ -97,6 +100,16 @@ public class StatusIconTooltipHandler : MonoBehaviour, IPointerEnterHandler, IPo
         }
 
         bool isEditable = _entry.CanEdit;
+        object? boxedVal = _entry.ConfigEntry?.BoxedValue;
+
+        if (_lastEntry == _entry && _lastCanEdit == isEditable && Equals(_lastBoxedValue, boxedVal))
+        {
+            return;
+        }
+
+        _lastEntry = _entry;
+        _lastCanEdit = isEditable;
+        _lastBoxedValue = boxedVal;
         string header = isEditable
             ? "<color=#64f0fc><b>[<size=140%>⇄</size>] SERVER SYNCED:</b></color>"
             : "<color=#e5a93c><b>[🔒] SERVER ENFORCED:</b></color>";
@@ -189,6 +202,9 @@ public class StatusIconTooltipHandler : MonoBehaviour, IPointerEnterHandler, IPo
     public static void HideTooltip()
     {
         _activeHandler = null;
+        _lastEntry = null;
+        _lastCanEdit = null;
+        _lastBoxedValue = null;
         if (_tooltipRoot != null && _tooltipRoot.activeSelf)
         {
             _tooltipRoot.SetActive(false);

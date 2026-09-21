@@ -24,10 +24,14 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
 
     private Canvas? _canvas;
     private CanvasScaler? _canvasScaler;
+    private GraphicRaycaster? _graphicRaycaster;
     private RectTransform? _drawerRootRT;
     private GameObject? _resizeHandleObj;
     private Transform? _contentContainer;
     private TMP_InputField? _searchField;
+    private GameObject? _clearSearchBtn;
+    private Coroutine? _searchDebounceRoutine;
+    private const float SearchDebounceSeconds = 0.15f;
     private TextMeshProUGUI? _rebindButtonText;
     private TextMeshProUGUI? _fontSizeButtonText;
     private TextMeshProUGUI? _shortcutHintLabel;
@@ -69,7 +73,7 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
         _canvasScaler.referenceResolution = new Vector2(1920f, 1080f);
         _canvasScaler.matchWidthOrHeight = 0.5f;
 
-        gameObject.AddComponent<GraphicRaycaster>();
+        _graphicRaycaster = gameObject.AddComponent<GraphicRaycaster>();
 
         var drawerObj = UiFactory.CreatePanel(transform, "DrawerRoot", CyberPalette.ColorIceBlue, CyberPalette.ColorVoidBlack, 1f);
         _drawerRootRT = drawerObj.GetComponent<RectTransform>();
@@ -331,24 +335,43 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
 
     private void BuildSearchBar(Transform parent)
     {
-        var searchContainer = new GameObject("SearchContainer", typeof(RectTransform));
+        GameObject searchContainer = new GameObject("SearchContainer", typeof(RectTransform));
         searchContainer.transform.SetParent(parent, false);
-        var searchRT = searchContainer.GetComponent<RectTransform>();
+        RectTransform searchRT = searchContainer.GetComponent<RectTransform>();
         searchRT.anchorMin = new Vector2(0f, 1f);
         searchRT.anchorMax = new Vector2(1f, 1f);
         searchRT.pivot = new Vector2(0.5f, 1f);
         searchRT.anchoredPosition = new Vector2(0f, -42f);
         searchRT.sizeDelta = new Vector2(-10f, 26f);
 
-        var (_, input) = UiFactory.CreateInputField(searchContainer.transform, "SearchInput", "", OnSearchChanged, -1f, 26f, "Search settings or mods...");
+        (GameObject inputObj, TMP_InputField input) = UiFactory.CreateInputField(searchContainer.transform, "SearchInput", string.Empty, OnSearchCommitted, -1f, 26f, "Search settings or mods...");
         _searchField = input;
-        input.onValueChanged.AddListener(OnSearchChanged);
+        input.onValueChanged.AddListener(OnSearchValueChanged);
 
-        var inputRT = input.gameObject.GetComponent<RectTransform>();
+        RectTransform inputRT = inputObj.GetComponent<RectTransform>();
         inputRT.anchorMin = Vector2.zero;
         inputRT.anchorMax = Vector2.one;
         inputRT.offsetMin = Vector2.zero;
-        inputRT.offsetMax = Vector2.zero;
+        inputRT.offsetMax = new Vector2(-26f, 0f);
+
+        _clearSearchBtn = UiFactory.CreateCyberButton(searchContainer.transform, "ClearSearchBtn", "✕", () =>
+        {
+            if (_searchField != null)
+            {
+                _searchField.text = string.Empty;
+                OnSearchCommitted(string.Empty);
+                _searchField.ActivateInputField();
+            }
+        }, CyberPalette.ColorBorderSubtle, CyberPalette.ColorTextMuted, 20f, 20f);
+
+        RectTransform clearRT = _clearSearchBtn.GetComponent<RectTransform>();
+        clearRT.anchorMin = new Vector2(1f, 0.5f);
+        clearRT.anchorMax = new Vector2(1f, 0.5f);
+        clearRT.pivot = new Vector2(1f, 0.5f);
+        clearRT.anchoredPosition = new Vector2(-3f, 0f);
+        clearRT.sizeDelta = new Vector2(20f, 20f);
+
+        _clearSearchBtn.SetActive(false);
     }
 
     private void BuildContentArea(Transform parent)
@@ -484,8 +507,17 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
 
         if (visible)
         {
-            ActivateEventSystem();
             EnsureWindowBuilt();
+            if (_canvas != null)
+            {
+                _canvas.enabled = true;
+            }
+            if (_graphicRaycaster != null)
+            {
+                _graphicRaycaster.enabled = true;
+            }
+
+            ActivateEventSystem();
             if (_drawerRootRT != null)
             {
                 _drawerRootRT.gameObject.SetActive(true);
@@ -513,6 +545,15 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
 
             HoverCardHandler.HideCard();
             StatusIconTooltipHandler.HideTooltip();
+            ButtonTooltipHandler.HideTooltip();
+            if (_canvas != null)
+            {
+                _canvas.enabled = false;
+            }
+            if (_graphicRaycaster != null)
+            {
+                _graphicRaycaster.enabled = false;
+            }
             DeactivateEventSystem();
         }
     }
@@ -552,8 +593,6 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
         {
             RenderPluginCard(listContainer, plugin);
         }
-
-        UiFactory.RefreshAllFonts(_contentContainer.gameObject);
     }
 
     private void RenderPluginCard(Transform parent, PluginSettingsGroup plugin)
@@ -782,8 +821,6 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
                 fillClick.OnClick = toggleCat;
             }
         }
-
-        UiFactory.RefreshAllFonts(_contentContainer.gameObject);
     }
 
     private static void PopulateCategorySettings(Transform container, IReadOnlyList<SettingEntry> settings)
@@ -792,7 +829,6 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
         {
             DrawerDispatcher.DrawSetting(container, settings[i]);
         }
-        UiFactory.RefreshAllFonts(container.gameObject);
     }
 
     private static void ClearCategorySettings(Transform container)
@@ -807,7 +843,40 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
         }
     }
 
-    private void OnSearchChanged(string query)
+    private void OnSearchValueChanged(string query)
+    {
+        if (_clearSearchBtn != null)
+        {
+            _clearSearchBtn.SetActive(!string.IsNullOrEmpty(query));
+        }
+
+        if (_searchDebounceRoutine != null)
+        {
+            StopCoroutine(_searchDebounceRoutine);
+        }
+
+        _searchDebounceRoutine = StartCoroutine(SearchDebounceRoutine(query));
+    }
+
+    private IEnumerator SearchDebounceRoutine(string query)
+    {
+        yield return new WaitForSecondsRealtime(SearchDebounceSeconds);
+        _searchDebounceRoutine = null;
+        ExecuteSearch(query);
+    }
+
+    private void OnSearchCommitted(string query)
+    {
+        if (_searchDebounceRoutine != null)
+        {
+            StopCoroutine(_searchDebounceRoutine);
+            _searchDebounceRoutine = null;
+        }
+
+        ExecuteSearch(query);
+    }
+
+    private void ExecuteSearch(string query)
     {
         if (_activePlugin != null)
         {
@@ -1060,6 +1129,18 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
             if (!Cursor.visible)
             {
                 Cursor.visible = true;
+            }
+
+            if (Input.GetKeyDown(KeyCode.Escape))
+            {
+                if (_searchField != null && _searchField.isFocused)
+                {
+                    _searchField.DeactivateInputField();
+                    if (EventSystem.current != null)
+                    {
+                        EventSystem.current.SetSelectedGameObject(null);
+                    }
+                }
             }
         }
     }

@@ -34,6 +34,15 @@ public class LegacyImguiBridge : MonoBehaviour, IBeginDragHandler, IDragHandler,
     private static Texture2D? _texSliderThumb;
     private static Texture2D? _texSliderThumbHover;
 
+    private static readonly RectOffset OffsetMargin2_2_4_4 = new(2, 2, 4, 4);
+    private static readonly RectOffset OffsetPadding1_1_2_2 = new(1, 1, 2, 2);
+    private static readonly RectOffset OffsetBorder1_1_1_1 = new(1, 1, 1, 1);
+    private static readonly RectOffset OffsetMargin2_2_3_3 = new(2, 2, 3, 3);
+    private static readonly RectOffset OffsetPadding3_3_1_1 = new(3, 3, 1, 1);
+    private static readonly RectOffset OffsetPadding3_2_2_2 = new(3, 2, 2, 2);
+    private static readonly RectOffset OffsetPadding18_4_2_2 = new(18, 4, 2, 2);
+    private static readonly RectOffset OffsetMargin2_2_5_5 = new(2, 2, 5, 5);
+
     public void OnBeginDrag(PointerEventData eventData) { }
     public void OnDrag(PointerEventData eventData) { }
     public void OnEndDrag(PointerEventData eventData) { }
@@ -416,8 +425,8 @@ public class LegacyImguiBridge : MonoBehaviour, IBeginDragHandler, IDragHandler,
         GUI.skin.label.normal.textColor = CyberPalette.ColorTextMain;
         GUI.skin.label.fontSize = 11;
         GUI.skin.label.stretchWidth = false;
-        GUI.skin.label.margin = new RectOffset(2, 2, 4, 4);
-        GUI.skin.label.padding = new RectOffset(1, 1, 2, 2);
+        GUI.skin.label.margin = OffsetMargin2_2_4_4;
+        GUI.skin.label.padding = OffsetPadding1_1_2_2;
 
         GUI.skin.button.normal.background = _texButton;
         GUI.skin.button.hover.background = _texButtonHover;
@@ -425,30 +434,30 @@ public class LegacyImguiBridge : MonoBehaviour, IBeginDragHandler, IDragHandler,
         GUI.skin.button.normal.textColor = CyberPalette.ColorIceBlueBright;
         GUI.skin.button.hover.textColor = Color.white;
         GUI.skin.button.active.textColor = CyberPalette.ColorGlacialMint;
-        GUI.skin.button.border = new RectOffset(1, 1, 1, 1);
+        GUI.skin.button.border = OffsetBorder1_1_1_1;
         GUI.skin.button.alignment = TextAnchor.MiddleCenter;
-        GUI.skin.button.margin = new RectOffset(2, 2, 3, 3);
-        GUI.skin.button.padding = new RectOffset(3, 3, 1, 1);
+        GUI.skin.button.margin = OffsetMargin2_2_3_3;
+        GUI.skin.button.padding = OffsetPadding3_3_1_1;
 
         GUI.skin.textField.normal.background = _texInput;
         GUI.skin.textField.focused.background = _texInputFocused;
         GUI.skin.textField.normal.textColor = Color.white;
         GUI.skin.textField.focused.textColor = CyberPalette.ColorIceBlueBright;
-        GUI.skin.textField.border = new RectOffset(1, 1, 1, 1);
+        GUI.skin.textField.border = OffsetBorder1_1_1_1;
         GUI.skin.textField.fontSize = 10;
-        GUI.skin.textField.margin = new RectOffset(2, 2, 3, 3);
-        GUI.skin.textField.padding = new RectOffset(3, 2, 2, 2);
+        GUI.skin.textField.margin = OffsetMargin2_2_3_3;
+        GUI.skin.textField.padding = OffsetPadding3_2_2_2;
 
         GUI.skin.toggle.normal.textColor = CyberPalette.ColorTextMain;
         GUI.skin.toggle.hover.textColor = Color.white;
         GUI.skin.toggle.onNormal.textColor = CyberPalette.ColorIceBlueBright;
-        GUI.skin.toggle.margin = new RectOffset(2, 2, 4, 4);
-        GUI.skin.toggle.padding = new RectOffset(18, 4, 2, 2);
+        GUI.skin.toggle.margin = OffsetMargin2_2_4_4;
+        GUI.skin.toggle.padding = OffsetPadding18_4_2_2;
 
         GUI.skin.horizontalSlider.normal.background = _texSliderTrack;
         GUI.skin.horizontalSlider.stretchWidth = false;
         GUI.skin.horizontalSlider.fixedHeight = 10;
-        GUI.skin.horizontalSlider.margin = new RectOffset(2, 2, 5, 5);
+        GUI.skin.horizontalSlider.margin = OffsetMargin2_2_5_5;
         GUI.skin.horizontalSliderThumb.normal.background = _texSliderThumb;
         GUI.skin.horizontalSliderThumb.hover.background = _texSliderThumbHover;
         GUI.skin.horizontalSliderThumb.fixedWidth = 14;

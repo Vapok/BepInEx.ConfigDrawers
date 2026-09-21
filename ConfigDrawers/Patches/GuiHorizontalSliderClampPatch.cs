@@ -24,6 +24,11 @@ internal static class GuiHorizontalSliderClampPatch
     [HarmonyPostfix]
     private static void Postfix(float leftValue, float rightValue, ref float __result)
     {
+        if (!ConfigDrawers.IsOpen)
+        {
+            return;
+        }
+
         float min = Mathf.Min(leftValue, rightValue);
         float max = Mathf.Max(leftValue, rightValue);
         if (__result < min)

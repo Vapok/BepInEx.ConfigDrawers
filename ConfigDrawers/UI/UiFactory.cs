@@ -199,13 +199,15 @@ public static class UiFactory
         blImg.color = CyberPalette.ColorInputAccent;
         blImg.raycastTarget = false;
 
+        float scaledFontSize = GetScaledFontSize(10f);
+
         GameObject textArea = new GameObject("TextArea", typeof(RectTransform), typeof(RectMask2D));
         textArea.transform.SetParent(targetParent, false);
         RectTransform taRT = textArea.GetComponent<RectTransform>()
             .SetAnchor(Vector2.zero, Vector2.one)
             .SetOffsets(
-                multiline ? new Vector2(6f, 6f) : new Vector2(6f, 2f),
-                multiline ? new Vector2(-6f, -6f) : new Vector2(-6f, -2f)
+                multiline ? new Vector2(6f, 6f) : new Vector2(8f, 0f),
+                multiline ? new Vector2(-6f, -6f) : new Vector2(-8f, 0f)
             );
 
         GameObject textObj = new GameObject("Text", typeof(RectTransform));
@@ -227,7 +229,7 @@ public static class UiFactory
             }
         }
 
-        textTmp.fontSize = GetScaledFontSize(10f);
+        textTmp.fontSize = scaledFontSize;
         textTmp.color = CyberPalette.ColorTextMain;
         textTmp.alignment = multiline ? TextAlignmentOptions.TopLeft : TextAlignmentOptions.MidlineLeft;
         textTmp.textWrappingMode = multiline ? TextWrappingModes.Normal : TextWrappingModes.NoWrap;
@@ -253,7 +255,7 @@ public static class UiFactory
             }
         }
 
-        placeholderTmp.fontSize = GetScaledFontSize(10f);
+        placeholderTmp.fontSize = scaledFontSize;
         placeholderTmp.color = new Color(0.35f, 0.48f, 0.58f, 0.55f);
         placeholderTmp.text = placeholderText ?? string.Empty;
         placeholderTmp.alignment = multiline ? TextAlignmentOptions.TopLeft : TextAlignmentOptions.MidlineLeft;
@@ -270,9 +272,9 @@ public static class UiFactory
 
         input.lineType = multiline ? TMP_InputField.LineType.MultiLineNewline : TMP_InputField.LineType.SingleLine;
         input.navigation = new Navigation { mode = Navigation.Mode.None };
+        input.transition = Selectable.Transition.None;
 
-        input.customCaretColor = true;
-        input.caretColor = CyberPalette.ColorIceBlueBright;
+        input.customCaretColor = false;
         input.caretWidth = 2;
         input.caretBlinkRate = 0.85f;
         input.selectionColor = new Color(0.12f, 0.50f, 0.75f, 0.45f);
