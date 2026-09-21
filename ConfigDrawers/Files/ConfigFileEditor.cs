@@ -93,7 +93,7 @@ public class ConfigFileEditor : MonoBehaviour
         BuildEditorUI(container);
         UpdateDirtyState();
         UpdateLineNumbers();
-        ValidateJsonIfNeeded();
+        ValidateSyntaxIfNeeded();
 
         StartCoroutine(FocusEditorRoutine());
     }
@@ -773,7 +773,7 @@ public class ConfigFileEditor : MonoBehaviour
         _currentContent = newText;
         UpdateDirtyState();
         ScheduleGutterUpdate();
-        ValidateJsonIfNeeded();
+        ValidateSyntaxIfNeeded();
     }
 
     private void OnContentCommitted(string newText)
@@ -781,7 +781,7 @@ public class ConfigFileEditor : MonoBehaviour
         _currentContent = newText;
         UpdateDirtyState();
         UpdateLineNumbers();
-        ValidateJsonIfNeeded();
+        ValidateSyntaxIfNeeded();
     }
 
     private void ScheduleGutterUpdate()
@@ -864,7 +864,7 @@ public class ConfigFileEditor : MonoBehaviour
         _statusFooter.text = $"UTF-8  |  {_fileItem.RelativePath}  |  Ln {caretLine}, Col {caretCol}  |  Lines: {lineCount}  |  {_fileItem.FormattedSize}";
     }
 
-    private void ValidateJsonIfNeeded()
+    private void ValidateSyntaxIfNeeded()
     {
         if (_validatorBadgeText == null || _validatorBadgeBorder == null || _fileItem == null)
         {
@@ -892,6 +892,30 @@ public class ConfigFileEditor : MonoBehaviour
                 if (_validatorTooltip != null)
                 {
                     _validatorTooltip.Bind("JSON SYNTAX ERROR", $"Line {result.ErrorLine}, Col {result.ErrorColumn}:\n{result.ErrorMessage}");
+                }
+            }
+        }
+        else if (_fileItem.Extension is ".yml" or ".yaml")
+        {
+            YamlValidator.ValidationResult result = YamlValidator.Validate(_currentContent);
+            if (result.IsValid)
+            {
+                _validatorBadgeText.text = "[ VALID YAML ]";
+                _validatorBadgeText.color = CyberPalette.ColorGlacialMint;
+                _validatorBadgeBorder.color = CyberPalette.ColorGlacialMint;
+                if (_validatorTooltip != null)
+                {
+                    _validatorTooltip.Bind("YAML VALID", "Syntax is well-formed and valid.");
+                }
+            }
+            else
+            {
+                _validatorBadgeText.text = "[ ! YAML ERR ]";
+                _validatorBadgeText.color = CyberPalette.ColorErrorRed;
+                _validatorBadgeBorder.color = CyberPalette.ColorErrorRed;
+                if (_validatorTooltip != null)
+                {
+                    _validatorTooltip.Bind("YAML SYNTAX ERROR", $"Line {result.ErrorLine}, Col {result.ErrorColumn}:\n{result.ErrorMessage}");
                 }
             }
         }
@@ -939,7 +963,7 @@ public class ConfigFileEditor : MonoBehaviour
 
         UpdateDirtyState();
         UpdateLineNumbers();
-        ValidateJsonIfNeeded();
+        ValidateSyntaxIfNeeded();
     }
 
     private void PerformRedo()
@@ -957,7 +981,7 @@ public class ConfigFileEditor : MonoBehaviour
 
         UpdateDirtyState();
         UpdateLineNumbers();
-        ValidateJsonIfNeeded();
+        ValidateSyntaxIfNeeded();
     }
 
     private void FormatJsonContent()
@@ -982,7 +1006,7 @@ public class ConfigFileEditor : MonoBehaviour
             _editorInput.text = formatted;
             UpdateDirtyState();
             UpdateLineNumbers();
-            ValidateJsonIfNeeded();
+            ValidateSyntaxIfNeeded();
         }
     }
 
@@ -1001,6 +1025,21 @@ public class ConfigFileEditor : MonoBehaviour
                 ConfirmationModal.Instance.Show(
                     "[ INVALID JSON WARNING ]",
                     $"The JSON syntax contains errors (Line {result.ErrorLine}):\n{result.ErrorMessage}\n\nSaving invalid JSON may break mod functionality. Save anyway?",
+                    "Save Anyway",
+                    ForceSaveFile,
+                    "Cancel"
+                );
+                return;
+            }
+        }
+        else if (_fileItem.Extension is ".yml" or ".yaml")
+        {
+            YamlValidator.ValidationResult result = YamlValidator.Validate(_currentContent);
+            if (!result.IsValid && ConfirmationModal.Instance != null)
+            {
+                ConfirmationModal.Instance.Show(
+                    "[ INVALID YAML WARNING ]",
+                    $"The YAML syntax contains errors (Line {result.ErrorLine}):\n{result.ErrorMessage}\n\nSaving invalid YAML may break mod functionality. Save anyway?",
                     "Save Anyway",
                     ForceSaveFile,
                     "Cancel"
@@ -1077,7 +1116,7 @@ public class ConfigFileEditor : MonoBehaviour
                     }
                     UpdateDirtyState();
                     UpdateLineNumbers();
-                    ValidateJsonIfNeeded();
+                    ValidateSyntaxIfNeeded();
                 },
                 "Cancel"
             );
