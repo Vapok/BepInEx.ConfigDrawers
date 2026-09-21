@@ -10,7 +10,8 @@
 
 <p align="center">
   <a href="https://github.com/Vapok/BepInEx.ConfigDrawers/releases"><img src="https://img.shields.io/github/v/release/Vapok/BepInEx.ConfigDrawers?include_prereleases&style=flat-square" alt="GitHub Release"></a>
-  <a href="https://thunderstore.io/c/valheim/p/Vapok/BepInEx.ConfigDrawers/"><img src="https://img.shields.io/thunderstore/v/Vapok/BepInEx.ConfigDrawers?style=flat-square" alt="Thunderstore Version"></a>
+  <a href="https://thunderstore.io/c/valheim/p/Vapok/BepInEx_ConfigDrawers/"><img src="https://img.shields.io/thunderstore/v/Vapok/BepInEx_ConfigDrawers?style=flat-square" alt="Thunderstore Version"></a>
+  <a href="https://www.nexusmods.com/valheim/mods/3909"><img src="https://img.shields.io/badge/Nexus%20Mods-3909-orange?style=flat-square" alt="Nexus Mods"></a>
   <a href="https://discord.gg/5YAJkRFBXt"><img src="https://img.shields.io/discord/941785535977934898?label=Discord&logo=discord&style=flat-square" alt="Discord"></a>
   <a href="LICENSE.md"><img src="https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square" alt="License"></a>
 </p>

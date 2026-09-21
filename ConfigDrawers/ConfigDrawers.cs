@@ -15,6 +15,7 @@ public class ConfigDrawers : BaseUnityPlugin
     public const string ModGuid = "vapok.bepinex.configdrawers";
     public const string ModName = "BepInEx.ConfigDrawers";
     public const string ModVersion = "1.0.0";
+    public const int NexusId = 3909;
 
     public static ConfigDrawers? Instance { get; private set; }
     public static BepInEx.Logging.ManualLogSource? Log => Instance?.Logger;

@@ -1,8 +1,8 @@
 {
   "name": "BepInEx_ConfigDrawers",
   "version_number": "1.0.0",
-  "website_url": "https://vapok.io",
-  "description": "Next-generation in-game Configuration Manager for BepInEx. Modern cyber-console UI, docking drawers, rich data tables, JSON editing, and zero bloat.",
+  "website_url": "https://www.nexusmods.com/valheim/mods/3909",
+  "description": "In-game configuration manager for BepInEx plugins with docking drawers, rich data tables, and syntax-highlighted config file editing.",
   "dependencies": [
     "denikson-BepInExPack_Valheim-5.4.2202"
   ]
