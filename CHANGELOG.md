@@ -7,8 +7,6 @@ All notable changes to **BepInEx.ConfigDrawers** are documented here.
 ## [1.0.1] - Window Opacity Fix
 
 - Fixed an issue where the Window Opacity slider was not wired up to the window background.
-- Expanded opacity range to allow adjustments between 20% and 100% with a 100% solid default.
-- Corrected background rendering so lowering opacity provides a clean, neutral view of the game without unwanted color tinting.
 
 ## [1.0.0] - Initial Release
 
