@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to **BepInEx.BepInEx.ConfigDrawerss** are documented here.
+All notable changes to **BepInEx.ConfigDrawers** are documented here.
 
 ---
 
