@@ -174,35 +174,46 @@ public static class UiFactory
         GameObject root = CreatePanel(parent, name, CyberPalette.ColorInputGroove, CyberPalette.ColorInputWell, 1f);
         float targetWidth = width > 0f ? width : 120f;
 
-        root.GetComponent<RectTransform>().SetSizeDelta(new Vector2(targetWidth, height));
+        if (height > 0f)
+        {
+            root.GetComponent<RectTransform>().SetSizeDelta(new Vector2(targetWidth, height));
+        }
 
         LayoutElement layout = root.AddComponent<LayoutElement>();
         layout.minWidth = targetWidth;
-        layout.preferredWidth = targetWidth;
+        layout.preferredWidth = width > 0f ? targetWidth : -1f;
         layout.flexibleWidth = width > 0f ? 0f : 1f;
-        layout.minHeight = height;
-        layout.preferredHeight = height;
-        layout.flexibleHeight = 0f;
+        layout.minHeight = height > 0f ? height : 60f;
+        layout.preferredHeight = height > 0f ? height : -1f;
+        layout.flexibleHeight = height > 0f ? 0f : 1f;
 
         Transform? fillTransform = root.transform.Find("Fill");
         Transform targetParent = fillTransform != null ? fillTransform : root.transform;
 
-        GameObject bottomLine = new GameObject("BottomAccent", typeof(RectTransform), typeof(Image));
-        bottomLine.transform.SetParent(targetParent, false);
-        bottomLine.GetComponent<RectTransform>()
-            .SetAnchor(new Vector2(0f, 0f), new Vector2(1f, 0f))
-            .SetPivot(new Vector2(0.5f, 0f))
-            .SetSizeDelta(new Vector2(0f, 1.5f))
-            .SetAnchoredPosition(Vector2.zero);
+        Image? blImg = null;
+        if (!multiline)
+        {
+            GameObject bottomLine = new GameObject("BottomAccent", typeof(RectTransform), typeof(Image));
+            bottomLine.transform.SetParent(targetParent, false);
+            bottomLine.GetComponent<RectTransform>()
+                .SetAnchor(new Vector2(0f, 0f), new Vector2(1f, 0f))
+                .SetPivot(new Vector2(0.5f, 0f))
+                .SetSizeDelta(new Vector2(0f, 1.5f))
+                .SetAnchoredPosition(Vector2.zero);
 
-        Image blImg = bottomLine.GetComponent<Image>();
-        blImg.color = CyberPalette.ColorInputAccent;
-        blImg.raycastTarget = false;
+            blImg = bottomLine.GetComponent<Image>();
+            blImg.color = CyberPalette.ColorInputAccent;
+            blImg.raycastTarget = false;
+        }
 
         float scaledFontSize = GetScaledFontSize(10f);
 
-        GameObject textArea = new GameObject("TextArea", typeof(RectTransform), typeof(RectMask2D));
+        GameObject textArea = new GameObject("TextArea", typeof(RectTransform), typeof(RectMask2D), typeof(Image));
         textArea.transform.SetParent(targetParent, false);
+        Image taImg = textArea.GetComponent<Image>();
+        taImg.color = Color.clear;
+        taImg.raycastTarget = true;
+
         RectTransform taRT = textArea.GetComponent<RectTransform>()
             .SetAnchor(Vector2.zero, Vector2.one)
             .SetOffsets(
@@ -213,7 +224,7 @@ public static class UiFactory
         GameObject textObj = new GameObject("Text", typeof(RectTransform));
         textObj.SetActive(false);
         textObj.transform.SetParent(textArea.transform, false);
-        textObj.GetComponent<RectTransform>()
+        RectTransform textRT = textObj.GetComponent<RectTransform>()
             .SetAnchor(Vector2.zero, Vector2.one)
             .SetOffsets(Vector2.zero, Vector2.zero);
 
@@ -241,7 +252,7 @@ public static class UiFactory
         GameObject placeholderObj = new GameObject("Placeholder", typeof(RectTransform));
         placeholderObj.SetActive(false);
         placeholderObj.transform.SetParent(textArea.transform, false);
-        placeholderObj.GetComponent<RectTransform>()
+        RectTransform phRT = placeholderObj.GetComponent<RectTransform>()
             .SetAnchor(Vector2.zero, Vector2.one)
             .SetOffsets(Vector2.zero, Vector2.zero);
 
@@ -264,26 +275,47 @@ public static class UiFactory
         placeholderTmp.raycastTarget = false;
         placeholderObj.SetActive(true);
 
+        Image borderImg = root.GetComponent<Image>();
+        if (borderImg != null)
+        {
+            borderImg.raycastTarget = true;
+        }
+
+        Image? fillImg = fillTransform != null ? fillTransform.GetComponent<Image>() : null;
+        if (fillImg != null)
+        {
+            fillImg.raycastTarget = false;
+        }
+
         TMP_InputField input = root.AddComponent<TMP_InputField>();
         input.textComponent = textTmp;
         input.textViewport = taRT;
-        input.targetGraphic = fillTransform != null ? fillTransform.GetComponent<Image>() : root.GetComponent<Image>();
+        input.targetGraphic = borderImg != null ? borderImg : root.GetComponent<Image>();
         input.placeholder = placeholderTmp;
 
         input.lineType = multiline ? TMP_InputField.LineType.MultiLineNewline : TMP_InputField.LineType.SingleLine;
         input.navigation = new Navigation { mode = Navigation.Mode.None };
         input.transition = Selectable.Transition.None;
 
-        input.customCaretColor = false;
-        input.caretWidth = 2;
+        input.customCaretColor = true;
+        input.caretColor = CyberPalette.ColorIceBlueBright;
+        input.caretWidth = 3;
         input.caretBlinkRate = 0.85f;
-        input.selectionColor = new Color(0.12f, 0.50f, 0.75f, 0.45f);
+        input.selectionColor = new Color(0.15f, 0.55f, 0.85f, 0.35f);
+        if (multiline)
+        {
+            input.onFocusSelectAll = false;
+        }
 
-        Image borderImg = root.GetComponent<Image>();
-        Image? fillImg = fillTransform != null ? fillTransform.GetComponent<Image>() : null;
+        input.enabled = false;
+        input.enabled = true;
 
-        CyberHoverHandler hover = root.AddComponent<CyberHoverHandler>();
-        hover.Init(borderImg, CyberPalette.ColorInputGroove, new Color(0.22f, 0.38f, 0.50f, 0.9f), fillImg, CyberPalette.ColorInputWell, CyberPalette.ColorInputWell);
+        if (borderImg != null && !multiline)
+        {
+            CyberHoverHandler hover = root.AddComponent<CyberHoverHandler>();
+            hover.Init(borderImg, CyberPalette.ColorInputGroove, new Color(0.22f, 0.38f, 0.50f, 0.9f), fillImg, CyberPalette.ColorInputWell, CyberPalette.ColorInputWell,
+                       pressedBorder: CyberPalette.ColorIceBlueBright, pressedFill: CyberPalette.ColorInputWell);
+        }
 
         input.onSelect.AddListener(_ =>
         {
@@ -326,5 +358,81 @@ public static class UiFactory
         iconImg.raycastTarget = false;
 
         return iconRT;
+    }
+
+    public static (GameObject Root, Image IconImage) CreateIconButton(
+        Transform parent,
+        string name,
+        Sprite iconSprite,
+        string tooltipHeader,
+        string tooltipBody,
+        Action onClick,
+        Color borderColor,
+        Color iconColor,
+        float size = 24f)
+    {
+        GameObject btnObj = CreatePanel(parent, name, borderColor, CyberPalette.ColorVoidBlack, 1f);
+
+        btnObj.GetComponent<RectTransform>().SetSizeDelta(new Vector2(size, size));
+
+        LayoutElement layout = btnObj.AddComponent<LayoutElement>();
+        layout.minWidth = size;
+        layout.preferredWidth = size;
+        layout.flexibleWidth = 0f;
+        layout.minHeight = size;
+        layout.preferredHeight = size;
+        layout.flexibleHeight = 0f;
+
+        Transform? fillTransform = btnObj.transform.Find("Fill");
+        Transform targetParent = fillTransform != null ? fillTransform : btnObj.transform;
+
+        GameObject iconObj = new GameObject("Icon", typeof(RectTransform), typeof(Image));
+        iconObj.transform.SetParent(targetParent, false);
+
+        RectTransform iconRT = iconObj.GetComponent<RectTransform>();
+        iconRT.anchorMin = new Vector2(0.5f, 0.5f);
+        iconRT.anchorMax = new Vector2(0.5f, 0.5f);
+        iconRT.pivot = new Vector2(0.5f, 0.5f);
+        iconRT.sizeDelta = new Vector2(16f, 16f);
+        iconRT.anchoredPosition = Vector2.zero;
+
+        Image iconImg = iconObj.GetComponent<Image>();
+        iconImg.sprite = iconSprite;
+        iconImg.color = iconColor;
+        iconImg.raycastTarget = false;
+
+        CyberHoverHandler hover = btnObj.AddComponent<CyberHoverHandler>();
+        Image borderImg = btnObj.GetComponent<Image>();
+        Image? fillImg = fillTransform != null ? fillTransform.GetComponent<Image>() : null;
+        bool isRed = borderColor == CyberPalette.ColorErrorRed;
+        bool isAmber = borderColor == CyberPalette.ColorWarningAmber;
+        bool isMint = borderColor == CyberPalette.ColorGlacialMint;
+
+        Color hoverBorder = isRed ? new Color(1f, 0.45f, 0.45f, 1f) :
+                            isAmber ? new Color(1f, 0.85f, 0.45f, 1f) :
+                            isMint ? new Color(0.6f, 1f, 0.9f, 1f) :
+                            CyberPalette.ColorIceBlueBright;
+
+        Color hoverFill = isRed ? new Color(0.18f, 0.04f, 0.04f, 1f) :
+                          isAmber ? new Color(0.18f, 0.14f, 0.04f, 1f) :
+                          CyberPalette.ColorCardSurface;
+
+        Color pressedBorder = Color.white;
+        Color pressedFill = new Color(0.12f, 0.22f, 0.32f, 1f);
+        Color hoverText = Color.white;
+        Color pressedText = Color.white;
+
+        hover.Init(borderImg, borderColor, hoverBorder, fillImg, CyberPalette.ColorVoidBlack, hoverFill, pressedBorder, pressedFill, null, iconColor, hoverText, pressedText);
+
+        Button btn = btnObj.AddComponent<Button>();
+        btn.transition = Selectable.Transition.None;
+        btn.onClick.AddListener(new UnityAction(onClick));
+
+        if (!string.IsNullOrEmpty(tooltipHeader) || !string.IsNullOrEmpty(tooltipBody))
+        {
+            BepInEx.ConfigDrawers.Components.ButtonTooltipHandler.Attach(btnObj, tooltipHeader, tooltipBody);
+        }
+
+        return (btnObj, iconImg);
     }
 }

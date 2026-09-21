@@ -62,22 +62,22 @@ public class CyberDropdownOverlay : MonoBehaviour
         var fill = popupPanel.transform.Find("Fill");
         var container = fill != null ? fill : popupPanel.transform;
 
-        var scrollObj = new GameObject("ScrollArea", typeof(RectTransform), typeof(ScrollRect), typeof(RectMask2D));
+        GameObject scrollObj = new GameObject("ScrollArea", typeof(RectTransform), typeof(ScrollRect), typeof(RectMask2D));
         scrollObj.transform.SetParent(container, false);
-        var scrollRT = scrollObj.GetComponent<RectTransform>();
+        RectTransform scrollRT = scrollObj.GetComponent<RectTransform>();
         scrollRT.anchorMin = Vector2.zero;
         scrollRT.anchorMax = Vector2.one;
         scrollRT.offsetMin = new Vector2(2f, 2f);
         scrollRT.offsetMax = new Vector2(-2f, -2f);
 
-        var scrollRect = scrollObj.GetComponent<ScrollRect>();
+        ScrollRect scrollRect = scrollObj.GetComponent<ScrollRect>();
         scrollRect.horizontal = false;
         scrollRect.vertical = true;
-        scrollRect.scrollSensitivity = 25f;
+        scrollRect.scrollSensitivity = 60f;
 
-        var contentObj = new GameObject("Content", typeof(RectTransform), typeof(VerticalLayoutGroup), typeof(ContentSizeFitter));
+        GameObject contentObj = new GameObject("Content", typeof(RectTransform), typeof(VerticalLayoutGroup), typeof(ContentSizeFitter));
         contentObj.transform.SetParent(scrollObj.transform, false);
-        var contentRT = contentObj.GetComponent<RectTransform>();
+        RectTransform contentRT = contentObj.GetComponent<RectTransform>();
         contentRT.anchorMin = new Vector2(0f, 1f);
         contentRT.anchorMax = new Vector2(1f, 1f);
         contentRT.pivot = new Vector2(0.5f, 1f);

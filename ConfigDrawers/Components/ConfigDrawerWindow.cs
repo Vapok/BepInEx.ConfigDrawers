@@ -1,5 +1,6 @@
 using BepInEx.ConfigDrawers.Configuration;
 using BepInEx.ConfigDrawers.Drawers;
+using BepInEx.ConfigDrawers.Files;
 using BepInEx.ConfigDrawers.Models;
 using BepInEx.ConfigDrawers.UI;
 using BepInEx.Configuration;
@@ -17,6 +18,12 @@ namespace BepInEx.ConfigDrawers.Components;
 
 public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler
 {
+    public enum MainViewMode
+    {
+        Plugins,
+        Files
+    }
+
     public static ConfigDrawerWindow? Instance { get; private set; }
 
     public bool IsVisible { get; private set; }
@@ -46,6 +53,11 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
     private bool _isRecordingKeybind;
     private PluginSettingsGroup? _activePlugin;
     private readonly HashSet<string> _expandedCategories = new();
+
+    private MainViewMode _currentViewMode = MainViewMode.Plugins;
+    private ConfigFileFilter _currentFileFilter = ConfigFileFilter.All;
+    private ConfigFileItem? _activeFile;
+    private ConfigFileEditor? _activeFileEditor;
 
     private GameObject? _eventSystemObj;
     private EventSystem? _dormantEventSystem;
@@ -88,6 +100,7 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
         BuildSearchBar(container);
         BuildContentArea(container);
         BuildFooter(container);
+        ConfirmationModal.Attach(gameObject);
 
         ConfigDrawerConfig.ToggleKeybind.SettingChanged += (_, _) =>
         {
@@ -271,15 +284,7 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
         bool next = !ConfigDrawerConfig.HideAdvancedByDefault.Value;
         ConfigDrawerConfig.HideAdvancedByDefault.Value = next;
         UpdateAdvancedButton();
-
-        if (_activePlugin != null)
-        {
-            ShowPluginSettings(_activePlugin);
-        }
-        else
-        {
-            PopulatePlugins();
-        }
+        RefreshCurrentView();
     }
 
     private void UpdateAdvancedButton()
@@ -322,15 +327,7 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
         {
             _fontSizeButtonText.text = GetFontSizeLabel();
         }
-
-        if (_activePlugin != null)
-        {
-            ShowPluginSettings(_activePlugin);
-        }
-        else
-        {
-            PopulatePlugins();
-        }
+        RefreshCurrentView();
     }
 
     private void BuildSearchBar(Transform parent)
@@ -415,7 +412,7 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
         scRT.offsetMax = new Vector2(-8f, 0f);
     }
 
-    private GameObject CreateScrollArea(Transform parent, out Transform listContainer)
+    private GameObject CreateScrollArea(Transform parent, out Transform listContainer, float topOffset = 28f)
     {
         var scrollObj = new GameObject("ScrollArea", typeof(RectTransform), typeof(ScrollRect));
         scrollObj.transform.SetParent(parent, false);
@@ -423,7 +420,7 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
         scrollRT.anchorMin = Vector2.zero;
         scrollRT.anchorMax = Vector2.one;
         scrollRT.offsetMin = Vector2.zero;
-        scrollRT.offsetMax = new Vector2(0f, -28f);
+        scrollRT.offsetMax = new Vector2(0f, -topOffset);
 
         var viewport = new GameObject("Viewport", typeof(RectTransform), typeof(RectMask2D), typeof(Image));
         viewport.transform.SetParent(scrollObj.transform, false);
@@ -436,58 +433,58 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
         vpRT.offsetMin = Vector2.zero;
         vpRT.offsetMax = new Vector2(-8f, 0f);
 
-        var listObj = new GameObject("List", typeof(RectTransform), typeof(VerticalLayoutGroup), typeof(ContentSizeFitter));
+        GameObject listObj = new GameObject("List", typeof(RectTransform), typeof(VerticalLayoutGroup), typeof(ContentSizeFitter));
         listObj.transform.SetParent(viewport.transform, false);
-        var listRT = listObj.GetComponent<RectTransform>();
+        RectTransform listRT = listObj.GetComponent<RectTransform>();
         listRT.anchorMin = new Vector2(0f, 1f);
         listRT.anchorMax = new Vector2(1f, 1f);
         listRT.pivot = new Vector2(0.5f, 1f);
         listRT.offsetMin = Vector2.zero;
         listRT.offsetMax = Vector2.zero;
 
-        var vlg = listObj.GetComponent<VerticalLayoutGroup>();
+        VerticalLayoutGroup vlg = listObj.GetComponent<VerticalLayoutGroup>();
         vlg.spacing = 3f;
         vlg.childControlWidth = true;
         vlg.childControlHeight = true;
         vlg.childForceExpandWidth = true;
         vlg.childForceExpandHeight = false;
 
-        var csf = listObj.GetComponent<ContentSizeFitter>();
+        ContentSizeFitter csf = listObj.GetComponent<ContentSizeFitter>();
         csf.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
 
-        var scrollbarObj = new GameObject("Scrollbar", typeof(RectTransform), typeof(Scrollbar), typeof(Image));
+        GameObject scrollbarObj = new GameObject("Scrollbar", typeof(RectTransform), typeof(Scrollbar), typeof(Image));
         scrollbarObj.transform.SetParent(scrollObj.transform, false);
-        var sbRT = scrollbarObj.GetComponent<RectTransform>();
+        RectTransform sbRT = scrollbarObj.GetComponent<RectTransform>();
         sbRT.anchorMin = new Vector2(1f, 0f);
         sbRT.anchorMax = new Vector2(1f, 1f);
         sbRT.pivot = new Vector2(1f, 0.5f);
         sbRT.sizeDelta = new Vector2(5f, 0f);
         sbRT.anchoredPosition = Vector2.zero;
 
-        var sbImg = scrollbarObj.GetComponent<Image>();
+        Image sbImg = scrollbarObj.GetComponent<Image>();
         sbImg.color = new Color(0.02f, 0.05f, 0.08f, 0.8f);
 
-        var slidingArea = new GameObject("SlidingArea", typeof(RectTransform));
+        GameObject slidingArea = new GameObject("SlidingArea", typeof(RectTransform));
         slidingArea.transform.SetParent(scrollbarObj.transform, false);
-        var saRT = slidingArea.GetComponent<RectTransform>();
+        RectTransform saRT = slidingArea.GetComponent<RectTransform>();
         saRT.anchorMin = Vector2.zero;
         saRT.anchorMax = Vector2.one;
         saRT.sizeDelta = Vector2.zero;
 
-        var handleObj = new GameObject("Handle", typeof(RectTransform), typeof(Image));
+        GameObject handleObj = new GameObject("Handle", typeof(RectTransform), typeof(Image));
         handleObj.transform.SetParent(slidingArea.transform, false);
-        var handleRT = handleObj.GetComponent<RectTransform>();
+        RectTransform handleRT = handleObj.GetComponent<RectTransform>();
         handleRT.sizeDelta = Vector2.zero;
 
-        var handleImg = handleObj.GetComponent<Image>();
+        Image handleImg = handleObj.GetComponent<Image>();
         handleImg.color = CyberPalette.ColorIceBlue;
 
-        var scrollbar = scrollbarObj.GetComponent<Scrollbar>();
+        Scrollbar scrollbar = scrollbarObj.GetComponent<Scrollbar>();
         scrollbar.handleRect = handleRT;
         scrollbar.targetGraphic = handleImg;
         scrollbar.direction = Scrollbar.Direction.BottomToTop;
 
-        var scrollRect = scrollObj.GetComponent<ScrollRect>();
+        ScrollRect scrollRect = scrollObj.GetComponent<ScrollRect>();
         scrollRect.content = listRT;
         scrollRect.viewport = vpRT;
         scrollRect.horizontal = false;
@@ -524,9 +521,19 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
             }
 
             ConfigRegistry.Instance.Refresh();
-            if (_activePlugin != null)
+            ConfigFileManager.Instance.Refresh();
+
+            if (_activeFileEditor != null && _activeFile != null)
+            {
+                ShowFileEditor(_activeFile);
+            }
+            else if (_activePlugin != null)
             {
                 ShowPluginSettings(_activePlugin);
+            }
+            else if (_currentViewMode == MainViewMode.Files)
+            {
+                PopulateFiles();
             }
             else
             {
@@ -538,6 +545,32 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
         }
         else
         {
+            if (_activeFileEditor != null && _activeFileEditor.IsDirty)
+            {
+                ConfirmationModal.Instance?.Show(
+                    "[ UNSAVED CHANGES ]",
+                    $"You have unsaved changes in '{_activeFileEditor.CurrentFile?.FileName}'. Do you want to save before closing?",
+                    "Discard",
+                    () =>
+                    {
+                        _activeFile = null;
+                        _activeFileEditor = null;
+                        SetVisible(false);
+                    },
+                    "Cancel",
+                    null,
+                    "Save & Close",
+                    () =>
+                    {
+                        _activeFileEditor.PerformSave();
+                        _activeFile = null;
+                        _activeFileEditor = null;
+                        SetVisible(false);
+                    }
+                );
+                return;
+            }
+
             if (_drawerRootRT != null)
             {
                 _drawerRootRT.gameObject.SetActive(false);
@@ -546,6 +579,7 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
             HoverCardHandler.HideCard();
             StatusIconTooltipHandler.HideTooltip();
             ButtonTooltipHandler.HideTooltip();
+            ConfirmationModal.Instance?.Hide();
             if (_canvas != null)
             {
                 _canvas.enabled = false;
@@ -563,9 +597,218 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
         SetVisible(!IsVisible);
     }
 
-    private void PopulatePlugins()
+    private void BuildModeSelector(Transform parent, int pluginCount, int fileCount)
+    {
+        GameObject modeRow = new GameObject("ModeSelectorRow", typeof(RectTransform), typeof(HorizontalLayoutGroup));
+        modeRow.transform.SetParent(parent, false);
+
+        RectTransform modeRT = modeRow.GetComponent<RectTransform>();
+        modeRT.anchorMin = new Vector2(0f, 1f);
+        modeRT.anchorMax = new Vector2(1f, 1f);
+        modeRT.pivot = new Vector2(0.5f, 1f);
+        modeRT.anchoredPosition = Vector2.zero;
+        modeRT.sizeDelta = new Vector2(0f, 24f);
+
+        HorizontalLayoutGroup hlg = modeRow.GetComponent<HorizontalLayoutGroup>();
+        hlg.spacing = 8f;
+        hlg.childControlWidth = true;
+        hlg.childControlHeight = true;
+        hlg.childForceExpandWidth = true;
+        hlg.childForceExpandHeight = false;
+
+        bool isPlugins = _currentViewMode == MainViewMode.Plugins;
+
+        UiFactory.CreateCyberButton(modeRow.transform, "PluginsModeBtn", $"Plugins Loaded ({pluginCount})", () =>
+        {
+            if (_currentViewMode != MainViewMode.Plugins)
+            {
+                SwitchViewMode(MainViewMode.Plugins);
+            }
+        }, isPlugins ? CyberPalette.ColorIceBlueBright : CyberPalette.ColorBorderSubtle,
+           isPlugins ? CyberPalette.ColorIceBlueBright : CyberPalette.ColorTextMuted);
+
+        UiFactory.CreateCyberButton(modeRow.transform, "FilesModeBtn", $"Files Found ({fileCount})", () =>
+        {
+            if (_currentViewMode != MainViewMode.Files)
+            {
+                SwitchViewMode(MainViewMode.Files);
+            }
+        }, !isPlugins ? CyberPalette.ColorIceBlueBright : CyberPalette.ColorBorderSubtle,
+           !isPlugins ? CyberPalette.ColorIceBlueBright : CyberPalette.ColorTextMuted);
+    }
+
+    private void SwitchViewMode(MainViewMode mode)
+    {
+        if (_activeFileEditor != null && _activeFileEditor.IsDirty)
+        {
+            ConfirmationModal.Instance?.Show(
+                "[ UNSAVED CHANGES ]",
+                $"You have unsaved changes in '{_activeFileEditor.CurrentFile?.FileName}'. Do you want to save before switching views?",
+                "Discard",
+                () =>
+                {
+                    _activeFile = null;
+                    _activeFileEditor = null;
+                    _currentViewMode = mode;
+                    UpdateSearchPlaceholder();
+                    RefreshCurrentView();
+                },
+                "Cancel",
+                null,
+                "Save & Switch",
+                () =>
+                {
+                    _activeFileEditor.PerformSave();
+                    _activeFile = null;
+                    _activeFileEditor = null;
+                    _currentViewMode = mode;
+                    UpdateSearchPlaceholder();
+                    RefreshCurrentView();
+                }
+            );
+            return;
+        }
+
+        _activeFile = null;
+        _activeFileEditor = null;
+        _activePlugin = null;
+        _currentViewMode = mode;
+        UpdateSearchPlaceholder();
+        RefreshCurrentView();
+    }
+
+    private void RefreshCurrentView()
+    {
+        if (_activeFileEditor != null && _activeFile != null)
+        {
+            ShowFileEditor(_activeFile);
+        }
+        else if (_activePlugin != null)
+        {
+            ShowPluginSettings(_activePlugin);
+        }
+        else if (_currentViewMode == MainViewMode.Files)
+        {
+            PopulateFiles();
+        }
+        else
+        {
+            PopulatePlugins();
+        }
+    }
+
+    private void UpdateSearchPlaceholder()
+    {
+        if (_searchField != null && _searchField.placeholder is TextMeshProUGUI placeholderTmp)
+        {
+            placeholderTmp.text = _currentViewMode == MainViewMode.Files
+                ? "Search config files or paths..."
+                : "Search settings or mods...";
+        }
+    }
+
+    private void BuildFileFilterRow(Transform parent)
+    {
+        GameObject filterRow = new GameObject("FilterRow", typeof(RectTransform), typeof(HorizontalLayoutGroup));
+        filterRow.transform.SetParent(parent, false);
+
+        RectTransform filterRT = filterRow.GetComponent<RectTransform>();
+        filterRT.anchorMin = new Vector2(0f, 1f);
+        filterRT.anchorMax = new Vector2(1f, 1f);
+        filterRT.pivot = new Vector2(0.5f, 1f);
+        filterRT.anchoredPosition = new Vector2(0f, -27f);
+        filterRT.sizeDelta = new Vector2(0f, 22f);
+
+        HorizontalLayoutGroup hlg = filterRow.GetComponent<HorizontalLayoutGroup>();
+        hlg.spacing = 5f;
+        hlg.childControlWidth = true;
+        hlg.childControlHeight = true;
+        hlg.childForceExpandWidth = true;
+        hlg.childForceExpandHeight = false;
+
+        ConfigFileFilter[] filters = {
+            ConfigFileFilter.All,
+            ConfigFileFilter.Cfg,
+            ConfigFileFilter.Json,
+            ConfigFileFilter.Yaml,
+            ConfigFileFilter.Other
+        };
+
+        for (int i = 0; i < filters.Length; i++)
+        {
+            ConfigFileFilter f = filters[i];
+            int count = ConfigFileManager.Instance.GetFilterCount(f);
+            string label = f switch
+            {
+                ConfigFileFilter.All => $"ALL ({count})",
+                ConfigFileFilter.Cfg => $".CFG ({count})",
+                ConfigFileFilter.Json => $".JSON ({count})",
+                ConfigFileFilter.Yaml => $".YAML ({count})",
+                ConfigFileFilter.Other => $"OTHER ({count})",
+                _ => f.ToString()
+            };
+
+            bool active = _currentFileFilter == f;
+            UiFactory.CreateCyberButton(filterRow.transform, $"Filter_{f}", label, () =>
+            {
+                _currentFileFilter = f;
+                PopulateFiles();
+            }, active ? CyberPalette.ColorGlacialMint : CyberPalette.ColorBorderSubtle,
+               active ? CyberPalette.ColorGlacialMint : CyberPalette.ColorTextMuted);
+        }
+    }
+
+    private void PopulateFiles()
     {
         _activePlugin = null;
+        _activeFile = null;
+        _activeFileEditor = null;
+        if (_contentContainer == null)
+        {
+            return;
+        }
+
+        ConfigFileEditor? lingering = _contentContainer.gameObject.GetComponent<ConfigFileEditor>();
+        if (lingering != null)
+        {
+            Destroy(lingering);
+        }
+
+        foreach (Transform child in _contentContainer)
+        {
+            Destroy(child.gameObject);
+        }
+
+        int pluginCount = ConfigRegistry.Instance.Plugins.Count;
+        int fileCount = ConfigFileManager.Instance.GetAllFiles().Count;
+
+        BuildModeSelector(_contentContainer, pluginCount, fileCount);
+        BuildFileFilterRow(_contentContainer);
+
+        CreateScrollArea(_contentContainer, out Transform listContainer, topOffset: 54f);
+
+        string query = _searchField?.text ?? string.Empty;
+        List<ConfigFileItem> files = ConfigFileManager.Instance.FilterFiles(_currentFileFilter, query);
+
+        if (files.Count == 0)
+        {
+            TextMeshProUGUI emptyLabel = UiFactory.CreateLabel(listContainer, "EmptyFilesLabel", "No configuration files found matching current filter.", CyberPalette.ColorTextMuted, 10f, TextAlignmentOptions.Center);
+            LayoutElement ele = emptyLabel.gameObject.AddComponent<LayoutElement>();
+            ele.minHeight = 60f;
+            return;
+        }
+
+        for (int i = 0; i < files.Count; i++)
+        {
+            ConfigFileCard.Create(listContainer, files[i], ShowFileEditor);
+        }
+    }
+
+    private void ShowFileEditor(ConfigFileItem fileItem)
+    {
+        _activePlugin = null;
+        _activeFile = fileItem;
+
         if (_contentContainer == null)
         {
             return;
@@ -576,22 +819,61 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
             Destroy(child.gameObject);
         }
 
-        var query = _searchField?.text ?? string.Empty;
-        var plugins = ConfigRegistry.Instance.SearchPlugins(query, !ConfigDrawerConfig.HideAdvancedByDefault.Value).ToList();
-
-        var headerRow = UiFactory.CreateLabel(_contentContainer, "ListHeader", $"LOADED PLUGINS ({plugins.Count})", CyberPalette.ColorIceBlueBright, 10.5f, TextAlignmentOptions.MidlineLeft);
-        var headerRT = headerRow.GetComponent<RectTransform>();
-        headerRT.anchorMin = new Vector2(0f, 1f);
-        headerRT.anchorMax = new Vector2(1f, 1f);
-        headerRT.pivot = new Vector2(0.5f, 1f);
-        headerRT.anchoredPosition = Vector2.zero;
-        headerRT.sizeDelta = new Vector2(0f, 20f);
-
-        CreateScrollArea(_contentContainer, out var listContainer);
-
-        foreach (var plugin in plugins)
+        ConfigFileEditor? lingering = _contentContainer.gameObject.GetComponent<ConfigFileEditor>();
+        if (lingering != null)
         {
-            RenderPluginCard(listContainer, plugin);
+            Destroy(lingering);
+        }
+
+        GameObject editorHost = new GameObject("FileEditorHost", typeof(RectTransform));
+        editorHost.transform.SetParent(_contentContainer, false);
+        RectTransform ehRT = editorHost.GetComponent<RectTransform>();
+        ehRT.anchorMin = Vector2.zero;
+        ehRT.anchorMax = Vector2.one;
+        ehRT.offsetMin = Vector2.zero;
+        ehRT.offsetMax = Vector2.zero;
+
+        _activeFileEditor = editorHost.AddComponent<ConfigFileEditor>();
+        _activeFileEditor.OpenFile(editorHost.transform, fileItem, () =>
+        {
+            _activeFile = null;
+            _activeFileEditor = null;
+            PopulateFiles();
+        });
+    }
+
+    private void PopulatePlugins()
+    {
+        _activePlugin = null;
+        _activeFile = null;
+        _activeFileEditor = null;
+        if (_contentContainer == null)
+        {
+            return;
+        }
+
+        ConfigFileEditor? lingering = _contentContainer.gameObject.GetComponent<ConfigFileEditor>();
+        if (lingering != null)
+        {
+            Destroy(lingering);
+        }
+
+        foreach (Transform child in _contentContainer)
+        {
+            Destroy(child.gameObject);
+        }
+
+        string query = _searchField?.text ?? string.Empty;
+        List<PluginSettingsGroup> plugins = ConfigRegistry.Instance.SearchPlugins(query, !ConfigDrawerConfig.HideAdvancedByDefault.Value).ToList();
+        int fileCount = ConfigFileManager.Instance.GetAllFiles().Count;
+
+        BuildModeSelector(_contentContainer, plugins.Count, fileCount);
+
+        CreateScrollArea(_contentContainer, out Transform listContainer, topOffset: 28f);
+
+        for (int i = 0; i < plugins.Count; i++)
+        {
+            RenderPluginCard(listContainer, plugins[i]);
         }
     }
 
@@ -878,9 +1160,18 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
 
     private void ExecuteSearch(string query)
     {
+        if (_activeFileEditor != null)
+        {
+            return;
+        }
+
         if (_activePlugin != null)
         {
             ShowPluginSettings(_activePlugin);
+        }
+        else if (_currentViewMode == MainViewMode.Files)
+        {
+            PopulateFiles();
         }
         else
         {
@@ -1133,13 +1424,32 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
 
             if (Input.GetKeyDown(KeyCode.Escape))
             {
-                if (_searchField != null && _searchField.isFocused)
+                if (ConfirmationModal.Instance != null && ConfirmationModal.Instance.IsOpen)
+                {
+                    ConfirmationModal.Instance.Hide();
+                }
+                else if (_searchField != null && _searchField.isFocused)
                 {
                     _searchField.DeactivateInputField();
                     if (EventSystem.current != null)
                     {
                         EventSystem.current.SetSelectedGameObject(null);
                     }
+                }
+                else if (_activeFileEditor != null)
+                {
+                    if (_activeFileEditor.IsFocused)
+                    {
+                        _activeFileEditor.Defocus();
+                    }
+                    else
+                    {
+                        _activeFileEditor.HandleBackClicked();
+                    }
+                }
+                else if (_activePlugin != null)
+                {
+                    PopulatePlugins();
                 }
             }
         }

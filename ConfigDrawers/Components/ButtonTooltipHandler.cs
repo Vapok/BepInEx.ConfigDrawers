@@ -130,15 +130,20 @@ public class ButtonTooltipHandler : MonoBehaviour, IPointerEnterHandler, IPointe
 
         _text.ForceMeshUpdate();
 
-        Vector2 preferred = _text.GetPreferredValues(TooltipTargetWidth - 16f, 1000f);
-        float width = Mathf.Min(TooltipTargetWidth, preferred.x + 20f);
-        float height = preferred.y + 12f;
-
         float effectiveMinWidth = string.IsNullOrEmpty(_bodyText) ? 50f : TooltipMinWidth;
         float effectiveMinHeight = string.IsNullOrEmpty(_bodyText) ? 22f : TooltipMinHeight;
 
+        Vector2 unconstrained = _text.GetPreferredValues(_text.text, 1000f, 1000f);
+        float targetWidth = Mathf.Clamp(unconstrained.x + 28f, effectiveMinWidth, 340f);
+
         RectTransform rt = _tooltipRoot.GetComponent<RectTransform>();
-        rt.sizeDelta = new Vector2(Mathf.Max(width, effectiveMinWidth), Mathf.Max(height, effectiveMinHeight));
+        rt.sizeDelta = new Vector2(targetWidth, 300f);
+
+        LayoutRebuilder.ForceRebuildLayoutImmediate(rt);
+        _text.ForceMeshUpdate();
+
+        float targetHeight = Mathf.Max(_text.preferredHeight + 18f, effectiveMinHeight);
+        rt.sizeDelta = new Vector2(targetWidth, targetHeight);
 
         RectTransform buttonRT = (RectTransform)transform;
         Vector3[] corners = new Vector3[4];

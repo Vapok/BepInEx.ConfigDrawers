@@ -32,6 +32,7 @@ public class ConfigDrawers : BaseUnityPlugin
         harmony.PatchAll(typeof(ConfigDrawers).Assembly);
 
         LegacyManagerSuppressor.CheckAndSuppress(Logger);
+        DynamicInputBlocker.Initialize(harmony, Logger);
         UI.UIFonts.GetPrimaryFont();
         InitializeWindow();
         AttachCompatibilityShim();
