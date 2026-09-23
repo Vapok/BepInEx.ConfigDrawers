@@ -12,9 +12,7 @@ namespace BepInEx.ConfigDrawers.Models;
 
 public class SettingEntry
 {
-    private object? _cmaTagObject;
-    private static float _lastAdminCheck;
-    private static bool _cachedAdmin = true;
+    private readonly List<object> _cmaTagObjects = new();
 
     public ConfigEntryBase ConfigEntry { get; }
     public string Key => ConfigEntry.Definition.Key;
@@ -74,11 +72,6 @@ public class SettingEntry
             if (!CheckDynamicUnlocked())
             {
                 return false;
-            }
-
-            if (IsAdminOnly)
-            {
-                return IsAdminOrSinglePlayer();
             }
 
             return true;
@@ -182,7 +175,10 @@ public class SettingEntry
             return;
         }
 
-        _cmaTagObject = tag;
+        if (!_cmaTagObjects.Contains(tag))
+        {
+            _cmaTagObjects.Add(tag);
+        }
 
         var fields = tagType.GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
         var properties = tagType.GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
@@ -307,19 +303,19 @@ public class SettingEntry
 
     private bool CheckDynamicReadOnly()
     {
-        if (_cmaTagObject != null)
+        foreach (object tag in _cmaTagObjects)
         {
             try
             {
-                Type type = _cmaTagObject.GetType();
+                Type type = tag.GetType();
                 PropertyInfo? prop = type.GetProperty("ReadOnly", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
-                if (prop != null && prop.GetValue(_cmaTagObject, null) is bool ro)
+                if (prop != null && prop.GetValue(tag, null) is bool ro)
                 {
                     return ro;
                 }
 
                 FieldInfo? field = type.GetField("ReadOnly", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
-                if (field != null && field.GetValue(_cmaTagObject) is bool roField)
+                if (field != null && field.GetValue(tag) is bool roField)
                 {
                     return roField;
                 }
@@ -335,84 +331,35 @@ public class SettingEntry
 
     private bool CheckDynamicUnlocked()
     {
-        if (_cmaTagObject == null)
+        if (_cmaTagObjects.Count == 0)
         {
             return IsUnlocked;
         }
 
-        try
+        foreach (object tag in _cmaTagObjects)
         {
-            Type type = _cmaTagObject.GetType();
-            PropertyInfo? prop = type.GetProperty("IsUnlocked", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
-            if (prop != null && prop.GetValue(_cmaTagObject, null) is bool unlocked)
+            try
             {
-                return unlocked;
-            }
+                Type type = tag.GetType();
+                PropertyInfo? prop = type.GetProperty("IsUnlocked", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+                if (prop != null && prop.GetValue(tag, null) is bool unlocked)
+                {
+                    return unlocked;
+                }
 
-            FieldInfo? field = type.GetField("IsUnlocked", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
-            if (field != null && field.GetValue(_cmaTagObject) is bool unlockedField)
-            {
-                return unlockedField;
+                FieldInfo? field = type.GetField("IsUnlocked", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+                if (field != null && field.GetValue(tag) is bool unlockedField)
+                {
+                    return unlockedField;
+                }
             }
-        }
-        catch (Exception ex)
-        {
-            ConfigDrawers.Log?.LogDebug($"[ConfigDrawers] Dynamic unlocked check failed for {Key}: {ex.Message}");
+            catch (Exception ex)
+            {
+                ConfigDrawers.Log?.LogDebug($"[ConfigDrawers] Dynamic unlocked check failed for {Key}: {ex.Message}");
+            }
         }
 
         return IsUnlocked;
-    }
-
-    public static bool IsAdminOrSinglePlayer()
-    {
-        if (Time.unscaledTime - _lastAdminCheck < 1.0f)
-        {
-            return _cachedAdmin;
-        }
-
-        _lastAdminCheck = Time.unscaledTime;
-
-        try
-        {
-            Type? znetType = Type.GetType("ZNet, assembly_valheim");
-            if (znetType == null)
-            {
-                _cachedAdmin = true;
-                return true;
-            }
-
-            PropertyInfo? instanceProp = znetType.GetProperty("instance", BindingFlags.Static | BindingFlags.Public)
-                                      ?? znetType.GetProperty("m_instance", BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
-            object? instance = instanceProp?.GetValue(null);
-            if (instance == null)
-            {
-                _cachedAdmin = true;
-                return true;
-            }
-
-            MethodInfo? adminOrHostMethod = znetType.GetMethod("LocalPlayerIsAdminOrHost", BindingFlags.Instance | BindingFlags.Public);
-            if (adminOrHostMethod != null)
-            {
-                _cachedAdmin = (bool)adminOrHostMethod.Invoke(instance, null);
-                return _cachedAdmin;
-            }
-
-            MethodInfo? isServerMethod = znetType.GetMethod("IsServer", BindingFlags.Instance | BindingFlags.Public);
-            if (isServerMethod != null)
-            {
-                _cachedAdmin = (bool)isServerMethod.Invoke(instance, null);
-                return _cachedAdmin;
-            }
-
-            _cachedAdmin = true;
-            return true;
-        }
-        catch (Exception ex)
-        {
-            ConfigDrawers.Log?.LogDebug($"[ConfigDrawers] Admin check exception fallback: {ex.Message}");
-            _cachedAdmin = true;
-            return true;
-        }
     }
 
     public string FormatValue(object? value)
