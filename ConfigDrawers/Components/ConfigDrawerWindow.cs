@@ -303,12 +303,14 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
 
     private void UpdateAdvancedButton()
     {
+        bool isOff = ConfigDrawerConfig.HideAdvancedByDefault.Value;
+        Color textCol = isOff ? CyberPalette.ColorTextMuted : CyberPalette.ColorIceBlueBright;
+        Color borderCol = isOff ? CyberPalette.ColorBorderSubtle : CyberPalette.ColorIceBlue;
+
         if (_advancedButtonText != null)
         {
             _advancedButtonText.text = GetAdvancedButtonText();
-            _advancedButtonText.color = ConfigDrawerConfig.HideAdvancedByDefault.Value
-                ? CyberPalette.ColorTextMuted
-                : CyberPalette.ColorIceBlueBright;
+            _advancedButtonText.color = textCol;
         }
 
         if (_advancedToggleBtn != null)
@@ -316,9 +318,13 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
             Image? img = _advancedToggleBtn.GetComponent<Image>();
             if (img != null)
             {
-                img.color = ConfigDrawerConfig.HideAdvancedByDefault.Value
-                    ? CyberPalette.ColorBorderSubtle
-                    : CyberPalette.ColorIceBlue;
+                img.color = borderCol;
+            }
+
+            CyberHoverHandler hover = _advancedToggleBtn.GetComponent<CyberHoverHandler>();
+            if (hover != null)
+            {
+                hover.SetNormalColors(borderCol, textCol);
             }
         }
     }

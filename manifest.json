@@ -1,6 +1,6 @@
 {
   "name": "BepInEx_ConfigDrawers",
-  "version_number": "1.0.1",
+  "version_number": "1.0.2",
   "website_url": "https://www.nexusmods.com/valheim/mods/3909",
   "description": "In-game configuration manager for BepInEx plugins with docking drawers, rich data tables, and syntax-highlighted config file editing.",
   "dependencies": [

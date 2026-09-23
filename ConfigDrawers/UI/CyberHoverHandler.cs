@@ -81,7 +81,31 @@ public class CyberHoverHandler : MonoBehaviour, IPointerEnterHandler, IPointerEx
         UpdateVisuals();
     }
 
-    private void UpdateVisuals()
+    public void SetNormalColors(
+        Color normalBorder,
+        Color normalText,
+        Color? normalFill = null,
+        Color? hoverBorder = null,
+        Color? hoverText = null,
+        Color? hoverFill = null,
+        Color? pressedBorder = null,
+        Color? pressedText = null,
+        Color? pressedFill = null)
+    {
+        _normalBorder = normalBorder;
+        _normalText = normalText;
+        if (normalFill.HasValue) _normalFill = normalFill.Value;
+        if (hoverBorder.HasValue) _hoverBorder = hoverBorder.Value;
+        if (hoverText.HasValue) _hoverText = hoverText.Value;
+        if (hoverFill.HasValue) _hoverFill = hoverFill.Value;
+        if (pressedBorder.HasValue) _pressedBorder = pressedBorder.Value;
+        if (pressedText.HasValue) _pressedText = pressedText.Value;
+        if (pressedFill.HasValue) _pressedFill = pressedFill.Value;
+
+        UpdateVisuals();
+    }
+
+    public void UpdateVisuals()
     {
         if (_isPressed)
         {

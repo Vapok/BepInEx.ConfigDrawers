@@ -453,25 +453,43 @@ public class UguiDrawerScope : IUguiDrawerScope
         Color text = state ? CyberPalette.ColorGlacialMint : CyberPalette.ColorTextMuted;
 
         GameObject? btnObj = null;
+
+        void UpdateToggleDisplay(GameObject obj, bool st)
+        {
+            TextMeshProUGUI tmp = obj.GetComponentInChildren<TextMeshProUGUI>();
+            Image img = obj.GetComponent<Image>();
+            CyberHoverHandler hover = obj.GetComponent<CyberHoverHandler>();
+            Color b = st ? CyberPalette.ColorGlacialMint : CyberPalette.ColorBorderSubtle;
+            Color t = st ? CyberPalette.ColorGlacialMint : CyberPalette.ColorTextMuted;
+            Color hb = st ? Color.Lerp(CyberPalette.ColorGlacialMint, Color.white, 0.35f) : CyberPalette.ColorIceBlueBright;
+            Color ht = st ? Color.white : CyberPalette.ColorIceBlueBright;
+
+            if (tmp != null)
+            {
+                tmp.text = st ? "ON" : "OFF";
+                tmp.color = t;
+            }
+            if (img != null)
+            {
+                img.color = b;
+            }
+            if (hover != null)
+            {
+                hover.SetNormalColors(b, t, hoverBorder: hb, hoverText: ht);
+            }
+        }
+
         btnObj = UiFactory.CreateCyberButton(row.transform, "ToggleBtn", btnText, () =>
         {
             state = !state;
             if (btnObj != null)
             {
-                TextMeshProUGUI tmp = btnObj.GetComponentInChildren<TextMeshProUGUI>();
-                Image img = btnObj.GetComponent<Image>();
-                if (tmp != null)
-                {
-                    tmp.text = state ? "ON" : "OFF";
-                    tmp.color = state ? CyberPalette.ColorGlacialMint : CyberPalette.ColorTextMuted;
-                }
-                if (img != null)
-                {
-                    img.color = state ? CyberPalette.ColorGlacialMint : CyberPalette.ColorBorderSubtle;
-                }
+                UpdateToggleDisplay(btnObj, state);
             }
             onChanged?.Invoke(state);
         }, border, text, 40f, 20f);
+
+        UpdateToggleDisplay(btnObj, state);
 
         if (!string.IsNullOrEmpty(label))
         {

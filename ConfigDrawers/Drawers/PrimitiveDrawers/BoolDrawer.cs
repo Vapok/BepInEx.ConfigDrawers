@@ -18,29 +18,31 @@ public static class BoolDrawer
 
         GameObject? btnObj = null;
 
-        var rowObj = DrawerDispatcher.CreateRowContainer(parent, entry, out var valueArea, () =>
+        GameObject rowObj = DrawerDispatcher.CreateRowContainer(parent, entry, out Transform valueArea, () =>
         {
-            var cur = entry.ConfigEntry.BoxedValue is bool b && b;
+            bool cur = entry.ConfigEntry.BoxedValue is bool b && b;
             if (btnObj != null)
             {
                 UpdateDisplay(btnObj, cur);
             }
         });
 
-        var currentVal = entry.ConfigEntry.BoxedValue is bool val && val;
-        var btnText = currentVal ? "ON" : "OFF";
-        var borderColor = currentVal ? CyberPalette.ColorGlacialMint : CyberPalette.ColorBorderSubtle;
-        var textColor = currentVal ? CyberPalette.ColorGlacialMint : CyberPalette.ColorTextMuted;
+        bool currentVal = entry.ConfigEntry.BoxedValue is bool val && val;
+        string btnText = currentVal ? "ON" : "OFF";
+        Color borderColor = currentVal ? CyberPalette.ColorGlacialMint : CyberPalette.ColorBorderSubtle;
+        Color textColor = currentVal ? CyberPalette.ColorGlacialMint : CyberPalette.ColorTextMuted;
 
         btnObj = UiFactory.CreateCyberButton(valueArea, "ToggleBtn", btnText, () =>
         {
-            var next = !(entry.ConfigEntry.BoxedValue is bool v && v);
+            bool next = !(entry.ConfigEntry.BoxedValue is bool v && v);
             entry.SetValue(next);
             if (btnObj != null)
             {
                 UpdateDisplay(btnObj, next);
             }
         }, borderColor, textColor, 44f, 22f);
+
+        UpdateDisplay(btnObj, currentVal);
 
         btnObj.transform.SetAsFirstSibling();
 
@@ -49,17 +51,29 @@ public static class BoolDrawer
 
     private static void UpdateDisplay(GameObject btnObj, bool state)
     {
-        var tmp = btnObj.GetComponentInChildren<TextMeshProUGUI>();
-        var img = btnObj.GetComponent<Image>();
+        TextMeshProUGUI tmp = btnObj.GetComponentInChildren<TextMeshProUGUI>();
+        Image img = btnObj.GetComponent<Image>();
+        CyberHoverHandler hover = btnObj.GetComponent<CyberHoverHandler>();
+
+        Color borderColor = state ? CyberPalette.ColorGlacialMint : CyberPalette.ColorBorderSubtle;
+        Color textColor = state ? CyberPalette.ColorGlacialMint : CyberPalette.ColorTextMuted;
+        Color hoverBorder = state ? Color.Lerp(CyberPalette.ColorGlacialMint, Color.white, 0.35f) : CyberPalette.ColorIceBlueBright;
+        Color hoverText = state ? Color.white : CyberPalette.ColorIceBlueBright;
+
         if (tmp != null)
         {
             tmp.text = state ? "ON" : "OFF";
-            tmp.color = state ? CyberPalette.ColorGlacialMint : CyberPalette.ColorTextMuted;
+            tmp.color = textColor;
         }
 
         if (img != null)
         {
-            img.color = state ? CyberPalette.ColorGlacialMint : CyberPalette.ColorBorderSubtle;
+            img.color = borderColor;
+        }
+
+        if (hover != null)
+        {
+            hover.SetNormalColors(borderColor, textColor, hoverBorder: hoverBorder, hoverText: hoverText);
         }
     }
 }

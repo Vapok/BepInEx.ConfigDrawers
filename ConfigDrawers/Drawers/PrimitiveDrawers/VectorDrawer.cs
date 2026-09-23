@@ -11,9 +11,11 @@ namespace BepInEx.ConfigDrawers.Drawers.PrimitiveDrawers;
 
 public static class VectorDrawer
 {
-    private const float Width2D = 104f;
-    private const float Width3D = 154f;
+    private const float Width2D = 137f;
+    private const float Width3D = 207f;
     private const float LabelWidth = 10f;
+    private const float InputWidth = 54f;
+    private const float Spacing = 3f;
 
     public static bool CanDraw(SettingEntry entry)
     {
@@ -22,7 +24,7 @@ public static class VectorDrawer
             return false;
         }
 
-        var t = entry.SettingType;
+        Type t = entry.SettingType;
         return t == typeof(Vector2) || t == typeof(Vector3) || t.Name == "Vector2i" || t.Name == "Vector3i";
     }
 
@@ -33,18 +35,17 @@ public static class VectorDrawer
             throw new ArgumentNullException(entry == null ? nameof(entry) : nameof(parent));
         }
 
-        var is3D = Is3DVector(entry.SettingType);
-        var isInteger = IsIntegerVector(entry.SettingType);
-        var totalWidth = is3D ? Width3D : Width2D;
-        var inputWidth = is3D ? 36f : 38f;
+        bool is3D = Is3DVector(entry.SettingType);
+        bool isInteger = IsIntegerVector(entry.SettingType);
+        float totalWidth = is3D ? Width3D : Width2D;
 
         TMP_InputField? inputX = null;
         TMP_InputField? inputY = null;
         TMP_InputField? inputZ = null;
 
-        var rowObj = DrawerDispatcher.CreateRowContainer(parent, entry, out var valueArea, () =>
+        GameObject rowObj = DrawerDispatcher.CreateRowContainer(parent, entry, out Transform valueArea, () =>
         {
-            var (cx, cy, cz) = ReadVector(entry.ConfigEntry.BoxedValue);
+            (float cx, float cy, float cz) = ReadVector(entry.ConfigEntry.BoxedValue);
             if (inputX != null)
             {
                 inputX.text = FormatFloat(cx);
@@ -59,15 +60,15 @@ public static class VectorDrawer
             }
         }, totalWidth);
 
-        var (xVal, yVal, zVal) = ReadVector(entry.ConfigEntry.BoxedValue);
+        (float xVal, float yVal, float zVal) = ReadVector(entry.ConfigEntry.BoxedValue);
 
-        var vectorContainer = new GameObject("VectorControls", typeof(RectTransform), typeof(HorizontalLayoutGroup), typeof(LayoutElement));
+        GameObject vectorContainer = new GameObject("VectorControls", typeof(RectTransform), typeof(HorizontalLayoutGroup), typeof(LayoutElement));
         vectorContainer.transform.SetParent(valueArea, false);
 
-        var vRT = vectorContainer.GetComponent<RectTransform>();
+        RectTransform vRT = vectorContainer.GetComponent<RectTransform>();
         vRT.sizeDelta = new Vector2(totalWidth, 22f);
 
-        var vLe = vectorContainer.GetComponent<LayoutElement>();
+        LayoutElement vLe = vectorContainer.GetComponent<LayoutElement>();
         vLe.minWidth = totalWidth;
         vLe.preferredWidth = totalWidth;
         vLe.flexibleWidth = 0f;
@@ -75,8 +76,8 @@ public static class VectorDrawer
         vLe.preferredHeight = 22f;
         vLe.flexibleHeight = 0f;
 
-        var vHlg = vectorContainer.GetComponent<HorizontalLayoutGroup>();
-        vHlg.spacing = 2.5f;
+        HorizontalLayoutGroup vHlg = vectorContainer.GetComponent<HorizontalLayoutGroup>();
+        vHlg.spacing = Spacing;
         vHlg.childAlignment = TextAnchor.MiddleRight;
         vHlg.childControlWidth = false;
         vHlg.childControlHeight = false;
@@ -85,49 +86,49 @@ public static class VectorDrawer
 
         void TriggerCommit()
         {
-            var sx = inputX != null ? inputX.text : FormatFloat(xVal);
-            var sy = inputY != null ? inputY.text : FormatFloat(yVal);
-            var sz = inputZ != null ? inputZ.text : FormatFloat(zVal);
+            string sx = inputX != null ? inputX.text : FormatFloat(xVal);
+            string sy = inputY != null ? inputY.text : FormatFloat(yVal);
+            string sz = inputZ != null ? inputZ.text : FormatFloat(zVal);
             CommitChanges(entry, sx, sy, sz);
         }
 
-        var xLabel = UiFactory.CreateLabel(vectorContainer.transform, "LabelX", "X", CyberPalette.ColorIceBlueBright, 9f, TextAlignmentOptions.MidlineRight);
-        var xlRT = xLabel.GetComponent<RectTransform>();
+        TextMeshProUGUI xLabel = UiFactory.CreateLabel(vectorContainer.transform, "LabelX", "X", CyberPalette.ColorIceBlueBright, 9f, TextAlignmentOptions.MidlineRight);
+        RectTransform xlRT = xLabel.GetComponent<RectTransform>();
         xlRT.sizeDelta = new Vector2(LabelWidth, 20f);
-        var xlLe = xLabel.gameObject.AddComponent<LayoutElement>();
+        LayoutElement xlLe = xLabel.gameObject.AddComponent<LayoutElement>();
         xlLe.minWidth = LabelWidth;
         xlLe.preferredWidth = LabelWidth;
         xlLe.flexibleWidth = 0f;
 
-        var (_, inX) = UiFactory.CreateInputField(vectorContainer.transform, "InputX", FormatFloat(xVal), _ => TriggerCommit(), inputWidth, 20f);
+        (_, TMP_InputField inX) = UiFactory.CreateInputField(vectorContainer.transform, "InputX", FormatFloat(xVal), _ => TriggerCommit(), InputWidth, 20f, horizontalPadding: 4f);
         inputX = inX;
         inputX.interactable = entry.CanEdit;
         inputX.contentType = isInteger ? TMP_InputField.ContentType.IntegerNumber : TMP_InputField.ContentType.DecimalNumber;
 
-        var yLabel = UiFactory.CreateLabel(vectorContainer.transform, "LabelY", "Y", CyberPalette.ColorIceBlueBright, 9f, TextAlignmentOptions.MidlineRight);
-        var ylRT = yLabel.GetComponent<RectTransform>();
+        TextMeshProUGUI yLabel = UiFactory.CreateLabel(vectorContainer.transform, "LabelY", "Y", CyberPalette.ColorIceBlueBright, 9f, TextAlignmentOptions.MidlineRight);
+        RectTransform ylRT = yLabel.GetComponent<RectTransform>();
         ylRT.sizeDelta = new Vector2(LabelWidth, 20f);
-        var ylLe = yLabel.gameObject.AddComponent<LayoutElement>();
+        LayoutElement ylLe = yLabel.gameObject.AddComponent<LayoutElement>();
         ylLe.minWidth = LabelWidth;
         ylLe.preferredWidth = LabelWidth;
         ylLe.flexibleWidth = 0f;
 
-        var (_, inY) = UiFactory.CreateInputField(vectorContainer.transform, "InputY", FormatFloat(yVal), _ => TriggerCommit(), inputWidth, 20f);
+        (_, TMP_InputField inY) = UiFactory.CreateInputField(vectorContainer.transform, "InputY", FormatFloat(yVal), _ => TriggerCommit(), InputWidth, 20f, horizontalPadding: 4f);
         inputY = inY;
         inputY.interactable = entry.CanEdit;
         inputY.contentType = isInteger ? TMP_InputField.ContentType.IntegerNumber : TMP_InputField.ContentType.DecimalNumber;
 
         if (is3D)
         {
-            var zLabel = UiFactory.CreateLabel(vectorContainer.transform, "LabelZ", "Z", CyberPalette.ColorIceBlueBright, 9f, TextAlignmentOptions.MidlineRight);
-            var zlRT = zLabel.GetComponent<RectTransform>();
+            TextMeshProUGUI zLabel = UiFactory.CreateLabel(vectorContainer.transform, "LabelZ", "Z", CyberPalette.ColorIceBlueBright, 9f, TextAlignmentOptions.MidlineRight);
+            RectTransform zlRT = zLabel.GetComponent<RectTransform>();
             zlRT.sizeDelta = new Vector2(LabelWidth, 20f);
-            var zlLe = zLabel.gameObject.AddComponent<LayoutElement>();
+            LayoutElement zlLe = zLabel.gameObject.AddComponent<LayoutElement>();
             zlLe.minWidth = LabelWidth;
             zlLe.preferredWidth = LabelWidth;
             zlLe.flexibleWidth = 0f;
 
-            var (_, inZ) = UiFactory.CreateInputField(vectorContainer.transform, "InputZ", FormatFloat(zVal), _ => TriggerCommit(), inputWidth, 20f);
+            (_, TMP_InputField inZ) = UiFactory.CreateInputField(vectorContainer.transform, "InputZ", FormatFloat(zVal), _ => TriggerCommit(), InputWidth, 20f, horizontalPadding: 4f);
             inputZ = inZ;
             inputZ.interactable = entry.CanEdit;
             inputZ.contentType = isInteger ? TMP_InputField.ContentType.IntegerNumber : TMP_InputField.ContentType.DecimalNumber;
@@ -167,10 +168,10 @@ public static class VectorDrawer
 
         try
         {
-            var type = boxed.GetType();
-            var fx = type.GetField("x", BindingFlags.Instance | BindingFlags.Public) ?? (MemberInfo?)type.GetProperty("x", BindingFlags.Instance | BindingFlags.Public);
-            var fy = type.GetField("y", BindingFlags.Instance | BindingFlags.Public) ?? (MemberInfo?)type.GetProperty("y", BindingFlags.Instance | BindingFlags.Public);
-            var fz = type.GetField("z", BindingFlags.Instance | BindingFlags.Public) ?? (MemberInfo?)type.GetProperty("z", BindingFlags.Instance | BindingFlags.Public);
+            Type type = boxed.GetType();
+            MemberInfo? fx = type.GetField("x", BindingFlags.Instance | BindingFlags.Public) ?? (MemberInfo?)type.GetProperty("x", BindingFlags.Instance | BindingFlags.Public);
+            MemberInfo? fy = type.GetField("y", BindingFlags.Instance | BindingFlags.Public) ?? (MemberInfo?)type.GetProperty("y", BindingFlags.Instance | BindingFlags.Public);
+            MemberInfo? fz = type.GetField("z", BindingFlags.Instance | BindingFlags.Public) ?? (MemberInfo?)type.GetProperty("z", BindingFlags.Instance | BindingFlags.Public);
 
             float x = 0f, y = 0f, z = 0f;
 
@@ -199,19 +200,19 @@ public static class VectorDrawer
             return;
         }
 
-        if (!float.TryParse(strX, NumberStyles.Float, CultureInfo.InvariantCulture, out var fx))
+        if (!float.TryParse(strX, NumberStyles.Float, CultureInfo.InvariantCulture, out float fx))
         {
             return;
         }
 
-        if (!float.TryParse(strY, NumberStyles.Float, CultureInfo.InvariantCulture, out var fy))
+        if (!float.TryParse(strY, NumberStyles.Float, CultureInfo.InvariantCulture, out float fy))
         {
             return;
         }
 
-        float.TryParse(strZ, NumberStyles.Float, CultureInfo.InvariantCulture, out var fz);
+        float.TryParse(strZ, NumberStyles.Float, CultureInfo.InvariantCulture, out float fz);
 
-        var t = entry.SettingType;
+        Type t = entry.SettingType;
         if (t == typeof(Vector2))
         {
             entry.SetValue(new Vector2(fx, fy));
@@ -226,46 +227,46 @@ public static class VectorDrawer
 
         try
         {
-            var ix = Mathf.RoundToInt(fx);
-            var iy = Mathf.RoundToInt(fy);
-            var iz = Mathf.RoundToInt(fz);
+            int ix = Mathf.RoundToInt(fx);
+            int iy = Mathf.RoundToInt(fy);
+            int iz = Mathf.RoundToInt(fz);
 
-            var ctor3 = t.GetConstructor(new[] { typeof(int), typeof(int), typeof(int) });
+            ConstructorInfo? ctor3 = t.GetConstructor(new[] { typeof(int), typeof(int), typeof(int) });
             if (ctor3 != null)
             {
-                var newObj = ctor3.Invoke(new object[] { ix, iy, iz });
+                object? newObj = ctor3.Invoke(new object[] { ix, iy, iz });
                 entry.SetValue(newObj);
                 return;
             }
 
-            var ctor3F = t.GetConstructor(new[] { typeof(float), typeof(float), typeof(float) });
+            ConstructorInfo? ctor3F = t.GetConstructor(new[] { typeof(float), typeof(float), typeof(float) });
             if (ctor3F != null)
             {
-                var newObj = ctor3F.Invoke(new object[] { fx, fy, fz });
+                object? newObj = ctor3F.Invoke(new object[] { fx, fy, fz });
                 entry.SetValue(newObj);
                 return;
             }
 
-            var ctor2 = t.GetConstructor(new[] { typeof(int), typeof(int) });
+            ConstructorInfo? ctor2 = t.GetConstructor(new[] { typeof(int), typeof(int) });
             if (ctor2 != null)
             {
-                var newObj = ctor2.Invoke(new object[] { ix, iy });
+                object? newObj = ctor2.Invoke(new object[] { ix, iy });
                 entry.SetValue(newObj);
                 return;
             }
 
-            var ctor2F = t.GetConstructor(new[] { typeof(float), typeof(float) });
+            ConstructorInfo? ctor2F = t.GetConstructor(new[] { typeof(float), typeof(float) });
             if (ctor2F != null)
             {
-                var newObj = ctor2F.Invoke(new object[] { fx, fy });
+                object? newObj = ctor2F.Invoke(new object[] { fx, fy });
                 entry.SetValue(newObj);
                 return;
             }
 
-            var inst = Activator.CreateInstance(t);
-            var fxFld = t.GetField("x", BindingFlags.Instance | BindingFlags.Public);
-            var fyFld = t.GetField("y", BindingFlags.Instance | BindingFlags.Public);
-            var fzFld = t.GetField("z", BindingFlags.Instance | BindingFlags.Public);
+            object? inst = Activator.CreateInstance(t);
+            FieldInfo? fxFld = t.GetField("x", BindingFlags.Instance | BindingFlags.Public);
+            FieldInfo? fyFld = t.GetField("y", BindingFlags.Instance | BindingFlags.Public);
+            FieldInfo? fzFld = t.GetField("z", BindingFlags.Instance | BindingFlags.Public);
 
             if (fxFld != null && fyFld != null)
             {
