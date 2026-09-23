@@ -86,10 +86,22 @@ public static class RadioDrawer
         {
             foreach (var item in buttonMap)
             {
-                var isSelected = Equals(item.Value, current) || string.Equals(item.Value?.ToString(), current?.ToString(), StringComparison.OrdinalIgnoreCase);
-                if (item.Text != null) { item.Text.color = isSelected ? CyberPalette.ColorIceBlueBright : CyberPalette.ColorTextMuted; }
-                item.Border.color = isSelected ? CyberPalette.ColorIceBlue : CyberPalette.ColorBorderSubtle;
-                item.Fill.color = isSelected ? new Color(0.06f, 0.16f, 0.24f, 1f) : CyberPalette.ColorCardSurface;
+                bool isSelected = Equals(item.Value, current) || string.Equals(item.Value?.ToString(), current?.ToString(), StringComparison.OrdinalIgnoreCase);
+                Color border = isSelected ? CyberPalette.ColorIceBlue : CyberPalette.ColorBorderSubtle;
+                Color text = isSelected ? CyberPalette.ColorIceBlueBright : CyberPalette.ColorTextMuted;
+                Color fill = isSelected ? new Color(0.06f, 0.16f, 0.24f, 1f) : CyberPalette.ColorCardSurface;
+                Color hoverBorder = isSelected ? Color.white : CyberPalette.ColorIceBlueBright;
+                Color hoverText = isSelected ? Color.white : CyberPalette.ColorIceBlueBright;
+
+                if (item.Text != null) { item.Text.color = text; }
+                item.Border.color = border;
+                item.Fill.color = fill;
+
+                CyberHoverHandler hover = item.Button.GetComponent<CyberHoverHandler>();
+                if (hover != null)
+                {
+                    hover.SetNormalColors(border, text, normalFill: fill, hoverBorder: hoverBorder, hoverText: hoverText);
+                }
             }
         }
 

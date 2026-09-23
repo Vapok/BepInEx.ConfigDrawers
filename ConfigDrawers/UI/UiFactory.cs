@@ -193,7 +193,8 @@ public static class UiFactory
         float height = 24f,
         string placeholderText = "",
         bool multiline = false,
-        bool wrapText = true)
+        bool wrapText = true,
+        float horizontalPadding = 8f)
     {
         GameObject root = CreatePanel(parent, name, CyberPalette.ColorInputGroove, CyberPalette.ColorInputWell, 1f);
         float targetWidth = width > 0f ? width : 120f;
@@ -238,11 +239,12 @@ public static class UiFactory
         taImg.color = Color.clear;
         taImg.raycastTarget = true;
 
+        float hPad = multiline ? 6f : Mathf.Max(horizontalPadding, 2f);
         RectTransform taRT = textArea.GetComponent<RectTransform>()
             .SetAnchor(Vector2.zero, Vector2.one)
             .SetOffsets(
-                multiline ? new Vector2(6f, 6f) : new Vector2(8f, 0f),
-                multiline ? new Vector2(-6f, -6f) : new Vector2(-8f, 0f)
+                multiline ? new Vector2(6f, 6f) : new Vector2(hPad, 0f),
+                multiline ? new Vector2(-6f, -6f) : new Vector2(-hPad, 0f)
             );
 
         GameObject textObj = new GameObject("Text", typeof(RectTransform));

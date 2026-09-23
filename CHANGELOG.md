@@ -4,6 +4,11 @@ All notable changes to **BepInEx.ConfigDrawers** are documented here.
 
 ---
 
+## [1.0.2] - Toggle Visuals & Vector Inputs
+
+- Fixed an issue where toggle buttons (On/Off) did not update their active color immediately when clicked without restarting the game.
+- Expanded X, Y, and Z vector input boxes so five-digit numbers are fully visible without clipping.
+
 ## [1.0.1] - Window Opacity Fix
 
 - Fixed an issue where the Window Opacity slider was not wired up to the window background.

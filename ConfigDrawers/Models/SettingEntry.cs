@@ -66,19 +66,19 @@ public class SettingEntry
     {
         get
         {
-            if (CheckDynamicUnlocked())
+            if (CheckDynamicReadOnly())
             {
-                return true;
+                return false;
+            }
+
+            if (!CheckDynamicUnlocked())
+            {
+                return false;
             }
 
             if (IsAdminOnly)
             {
                 return IsAdminOrSinglePlayer();
-            }
-
-            if (ReadOnly)
-            {
-                return false;
             }
 
             return true;
@@ -305,11 +305,39 @@ public class SettingEntry
         }
     }
 
+    private bool CheckDynamicReadOnly()
+    {
+        if (_cmaTagObject != null)
+        {
+            try
+            {
+                Type type = _cmaTagObject.GetType();
+                PropertyInfo? prop = type.GetProperty("ReadOnly", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+                if (prop != null && prop.GetValue(_cmaTagObject, null) is bool ro)
+                {
+                    return ro;
+                }
+
+                FieldInfo? field = type.GetField("ReadOnly", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+                if (field != null && field.GetValue(_cmaTagObject) is bool roField)
+                {
+                    return roField;
+                }
+            }
+            catch (Exception ex)
+            {
+                ConfigDrawers.Log?.LogDebug($"[ConfigDrawers] Dynamic read-only check failed for {Key}: {ex.Message}");
+            }
+        }
+
+        return ReadOnly;
+    }
+
     private bool CheckDynamicUnlocked()
     {
         if (_cmaTagObject == null)
         {
-            return false;
+            return IsUnlocked;
         }
 
         try
@@ -332,7 +360,7 @@ public class SettingEntry
             ConfigDrawers.Log?.LogDebug($"[ConfigDrawers] Dynamic unlocked check failed for {Key}: {ex.Message}");
         }
 
-        return false;
+        return IsUnlocked;
     }
 
     public static bool IsAdminOrSinglePlayer()

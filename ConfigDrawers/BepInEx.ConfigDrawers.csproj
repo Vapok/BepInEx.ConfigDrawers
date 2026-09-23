@@ -5,7 +5,7 @@
     <Nullable>enable</Nullable>
     <AssemblyName>BepInEx.ConfigDrawers</AssemblyName>
     <RootNamespace>BepInEx.ConfigDrawers</RootNamespace>
-    <Version>1.0.1</Version>
+    <Version>1.0.2</Version>
     <PackageId>BepInEx_ConfigDrawers</PackageId>
     <ReferencesRoot Condition="'$(ReferencesRoot)' == ''">/home/vapok/Modding/References</ReferencesRoot>
     <BEPINEX_CORE>$(ReferencesRoot)/BepInEx/5.4.2350/BepInEx/core</BEPINEX_CORE>
