@@ -2,6 +2,7 @@ using BepInEx.ConfigDrawers.Configuration;
 using BepInEx.ConfigDrawers.Drawers;
 using BepInEx.ConfigDrawers.Files;
 using BepInEx.ConfigDrawers.Models;
+using BepInEx.ConfigDrawers.Patches;
 using BepInEx.ConfigDrawers.UI;
 using BepInEx.Configuration;
 using System;
@@ -284,7 +285,7 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
 
         UpdateDockButtons(_currentDock);
 
-        var closeBtn = UiFactory.CreateCyberButton(controlsRow.transform, "CloseBtn", "X", () => SetVisible(false), CyberPalette.ColorWarningAmber, CyberPalette.ColorTextMain, 24f, 22f);
+        GameObject closeBtn = UiFactory.CreateCyberButton(controlsRow.transform, "CloseBtn", "X", ConfigDrawers.CloseWindow, CyberPalette.ColorWarningAmber, CyberPalette.ColorTextMain, 24f, 22f);
         ButtonTooltipHandler.Attach(closeBtn, "[ CLOSE ]", "Close the Config Drawers window.");
     }
 
@@ -529,6 +530,11 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
 
     public void SetVisible(bool visible)
     {
+        if (IsVisible == visible)
+        {
+            return;
+        }
+
         IsVisible = visible;
 
         if (visible)
@@ -549,24 +555,19 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
                 _drawerRootRT.gameObject.SetActive(true);
             }
 
-            ConfigRegistry.Instance.Refresh();
-            ConfigFileManager.Instance.Refresh();
+            if (_contentContainer != null && _contentContainer.childCount == 0)
+            {
+                ConfigRegistry.Instance.Refresh();
+                ConfigFileManager.Instance.Refresh();
 
-            if (_activeFileEditor != null && _activeFile != null)
-            {
-                ShowFileEditor(_activeFile);
-            }
-            else if (_activePlugin != null)
-            {
-                ShowPluginSettings(_activePlugin);
-            }
-            else if (_currentViewMode == MainViewMode.Files)
-            {
-                PopulateFiles();
-            }
-            else
-            {
-                PopulatePlugins();
+                if (_currentViewMode == MainViewMode.Files)
+                {
+                    PopulateFiles();
+                }
+                else
+                {
+                    PopulatePlugins();
+                }
             }
 
             UnlockCursor();
@@ -574,32 +575,6 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
         }
         else
         {
-            if (_activeFileEditor != null && _activeFileEditor.IsDirty)
-            {
-                ConfirmationModal.Instance?.Show(
-                    "[ UNSAVED CHANGES ]",
-                    $"You have unsaved changes in '{_activeFileEditor.CurrentFile?.FileName}'. Do you want to save before closing?",
-                    "Discard",
-                    () =>
-                    {
-                        _activeFile = null;
-                        _activeFileEditor = null;
-                        SetVisible(false);
-                    },
-                    "Cancel",
-                    null,
-                    "Save & Close",
-                    () =>
-                    {
-                        _activeFileEditor.PerformSave();
-                        _activeFile = null;
-                        _activeFileEditor = null;
-                        SetVisible(false);
-                    }
-                );
-                return;
-            }
-
             if (_drawerRootRT != null)
             {
                 _drawerRootRT.gameObject.SetActive(false);
@@ -608,7 +583,10 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
             HoverCardHandler.HideCard();
             StatusIconTooltipHandler.HideTooltip();
             ButtonTooltipHandler.HideTooltip();
-            ConfirmationModal.Instance?.Hide();
+            if (ConfirmationModal.Instance != null)
+            {
+                ConfirmationModal.Instance.Hide();
+            }
             if (_canvas != null)
             {
                 _canvas.enabled = false;
@@ -618,12 +596,42 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
                 _graphicRaycaster.enabled = false;
             }
             DeactivateEventSystem();
+
+            if (EscapeSimulator.WasEscapedOnOpen)
+            {
+                EscapeSimulator.WasEscapedOnOpen = false;
+                if (ConfigDrawers.Instance != null)
+                {
+                    EscapeSimulator.TriggerSimulatedPress(ConfigDrawers.Instance);
+                }
+            }
         }
     }
 
     public void Toggle()
     {
-        SetVisible(!IsVisible);
+        if (IsVisible)
+        {
+            ConfigDrawers.CloseWindow();
+        }
+        else
+        {
+            ConfigDrawers.OpenWindow();
+        }
+    }
+
+    public void NotifyExternalFileChanged(string fullPath)
+    {
+        if (_activeFileEditor != null && _activeFile != null)
+        {
+            if (string.Equals(System.IO.Path.GetFullPath(_activeFile.FullPath), System.IO.Path.GetFullPath(fullPath), StringComparison.OrdinalIgnoreCase))
+            {
+                if (!_activeFileEditor.IsDirty)
+                {
+                    _activeFileEditor.ReloadExternal();
+                }
+            }
+        }
     }
 
     private void BuildModeSelector(Transform parent, int pluginCount, int fileCount)
@@ -1483,6 +1491,10 @@ public class ConfigDrawerWindow : MonoBehaviour, IBeginDragHandler, IDragHandler
                 else if (_activePlugin != null)
                 {
                     PopulatePlugins();
+                }
+                else
+                {
+                    ConfigDrawers.CloseWindow();
                 }
             }
         }

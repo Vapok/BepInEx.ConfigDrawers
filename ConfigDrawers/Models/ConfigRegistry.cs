@@ -26,15 +26,15 @@ public class ConfigRegistry
             return;
         }
 
-        foreach (var kvp in Chainloader.PluginInfos)
+        foreach (KeyValuePair<string, PluginInfo> kvp in Chainloader.PluginInfos)
         {
-            var pluginInfo = kvp.Value;
+            PluginInfo? pluginInfo = kvp.Value;
             if (pluginInfo?.Instance?.Config == null)
             {
                 continue;
             }
 
-            var group = new PluginSettingsGroup(pluginInfo);
+            PluginSettingsGroup group = new(pluginInfo);
             if (group.AllSettings.Count > 0)
             {
                 Plugins.Add(group);

@@ -302,6 +302,11 @@ internal static class DynamicInputBlocker
 
     private static bool SuppressBoolPrefix(ref bool __result)
     {
+        if (EscapeSimulator.IsSimulating)
+        {
+            return true;
+        }
+
         if (ConfigDrawers.IsOpen)
         {
             __result = false;

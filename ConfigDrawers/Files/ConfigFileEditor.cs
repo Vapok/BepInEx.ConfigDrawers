@@ -1156,6 +1156,7 @@ public class ConfigFileEditor : MonoBehaviour
 
         try
         {
+            ConfigFileWatcher.IgnoreNextChange(_fileItem.FullPath);
             ConfigFileManager.Instance.SaveFileText(_fileItem, _currentContent);
             _originalContent = _currentContent;
             UpdateDirtyState();
@@ -1166,6 +1167,8 @@ public class ConfigFileEditor : MonoBehaviour
                 _saveBtnIcon.color = CyberPalette.ColorGlacialMint;
                 StartCoroutine(ResetSaveButtonStateRoutine());
             }
+
+            ConfigFileWatcher.ReloadPluginConfigIfLoaded(_fileItem.FullPath);
         }
         catch (Exception ex)
         {
@@ -1179,6 +1182,34 @@ public class ConfigFileEditor : MonoBehaviour
                     () => { }
                 );
             }
+        }
+    }
+
+    public void ReloadExternal()
+    {
+        if (_fileItem == null || IsDirty)
+        {
+            return;
+        }
+
+        try
+        {
+            string newContent = ConfigFileManager.Instance.ReadFileText(_fileItem);
+            _originalContent = newContent;
+            _currentContent = newContent;
+            if (_editorInput != null)
+            {
+                int caret = _editorInput.caretPosition;
+                _editorInput.text = newContent;
+                _editorInput.caretPosition = Mathf.Min(caret, newContent.Length);
+            }
+            UpdateLineNumbers();
+            ValidateSyntaxIfNeeded();
+            UpdateDirtyState();
+        }
+        catch (Exception ex)
+        {
+            ConfigDrawers.Log?.LogWarning($"[ConfigDrawers] Failed to reload file externally: {ex.Message}");
         }
     }
 

@@ -14,7 +14,7 @@ public class ConfigDrawers : BaseUnityPlugin
 {
     public const string ModGuid = "vapok.bepinex.configdrawers";
     public const string ModName = "BepInEx.ConfigDrawers";
-    public const string ModVersion = "1.0.2";
+    public const string ModVersion = "1.1.0";
     public const int NexusId = 3909;
 
     public static ConfigDrawers? Instance { get; private set; }
@@ -34,6 +34,8 @@ public class ConfigDrawers : BaseUnityPlugin
 
         LegacyManagerSuppressor.CheckAndSuppress(Logger);
         DynamicInputBlocker.Initialize(harmony, Logger);
+        EscapeSimulator.Initialize();
+        Files.ConfigFileWatcher.Initialize(this);
         UI.UIFonts.GetPrimaryFont();
         InitializeWindow();
         AttachCompatibilityShim();
@@ -64,11 +66,63 @@ public class ConfigDrawers : BaseUnityPlugin
         }
     }
 
+    public static void ToggleWindow()
+    {
+        if (ConfigDrawerWindow.Instance == null)
+        {
+            return;
+        }
+
+        if (ConfigDrawerWindow.Instance.IsVisible)
+        {
+            CloseWindow();
+        }
+        else
+        {
+            OpenWindow();
+        }
+    }
+
+    public static void OpenWindow()
+    {
+        if (ConfigDrawerWindow.Instance == null || ConfigDrawerWindow.Instance.IsVisible)
+        {
+            return;
+        }
+
+        if (ConfigDrawerConfig.PressEscapeBeforeOpening.Value && Instance != null)
+        {
+            EscapeSimulator.WasEscapedOnOpen = true;
+            EscapeSimulator.TriggerSimulatedPress(Instance, () =>
+            {
+                if (ConfigDrawerWindow.Instance != null)
+                {
+                    ConfigDrawerWindow.Instance.SetVisible(true);
+                }
+            });
+        }
+        else
+        {
+            EscapeSimulator.WasEscapedOnOpen = false;
+            ConfigDrawerWindow.Instance.SetVisible(true);
+        }
+    }
+
+    public static void CloseWindow()
+    {
+        if (ConfigDrawerWindow.Instance == null || !ConfigDrawerWindow.Instance.IsVisible)
+        {
+            return;
+        }
+
+        ConfigDrawerWindow.Instance.SetVisible(false);
+    }
+
     private void Update()
     {
         if (ConfigDrawerConfig.ToggleKeybind != null && ConfigDrawerConfig.ToggleKeybind.Value.IsDown())
         {
-            ConfigDrawerWindow.Instance?.Toggle();
+            ToggleWindow();
         }
     }
 }

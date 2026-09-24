@@ -71,6 +71,15 @@ public static class JsonEditorDrawer
             entry.UpdateBuffer(val);
         });
 
+        SettingChangeTracker tracker = panel.AddComponent<SettingChangeTracker>();
+        tracker.Init(entry, () =>
+        {
+            if (inputField != null)
+            {
+                inputField.text = entry.EditBuffer;
+            }
+        });
+
         return panel;
     }
 }

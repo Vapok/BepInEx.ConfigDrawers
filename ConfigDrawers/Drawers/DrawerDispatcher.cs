@@ -163,6 +163,12 @@ public static class DrawerDispatcher
             resetRT.anchoredPosition = new Vector2(-28f, 0f);
         }
 
+        if (onReset != null)
+        {
+            SettingChangeTracker tracker = row.AddComponent<SettingChangeTracker>();
+            tracker.Init(entry, onReset);
+        }
+
         if (entry.IsAdminOnly)
         {
             var iconObj = new GameObject("StatusIcon", typeof(RectTransform), typeof(Image));

@@ -1,4 +1,5 @@
 using System;
+using BepInEx.ConfigDrawers;
 using BepInEx.ConfigDrawers.Components;
 using BepInEx.ConfigDrawers.Models;
 using UnityEngine;
@@ -11,12 +12,16 @@ public class ConfigurationManager : MonoBehaviour
 
     public bool DisplayingWindow
     {
-        get => ConfigDrawerWindow.Instance?.IsVisible ?? false;
+        get => ConfigDrawerWindow.Instance != null && ConfigDrawerWindow.Instance.IsVisible;
         set
         {
-            if (ConfigDrawerWindow.Instance != null)
+            if (value)
             {
-                ConfigDrawerWindow.Instance.SetVisible(value);
+                ConfigDrawers.OpenWindow();
+            }
+            else
+            {
+                ConfigDrawers.CloseWindow();
             }
         }
     }

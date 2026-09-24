@@ -14,6 +14,8 @@ public static class ConfigDrawerConfig
     public static ConfigEntry<float> WindowOpacity { get; private set; } = null!;
     public static ConfigEntry<bool> HideAdvancedByDefault { get; private set; } = null!;
     public static ConfigEntry<bool> AutoSuppressLegacy { get; private set; } = null!;
+    public static ConfigEntry<bool> WatchConfigFiles { get; private set; } = null!;
+    public static ConfigEntry<bool> PressEscapeBeforeOpening { get; private set; } = null!;
 
     public static void Initialize(ConfigFile config)
     {
@@ -85,6 +87,20 @@ public static class ConfigDrawerConfig
             "Auto Suppress Legacy Manager",
             true,
             "Automatically disable hotkeys of older ConfigurationManager versions to prevent duplicate windows."
+        );
+
+        WatchConfigFiles = config.Bind(
+            "General",
+            "Watch Config Files",
+            true,
+            "Automatically watch config files for external changes and update settings in real-time."
+        );
+
+        PressEscapeBeforeOpening = config.Bind(
+            "General",
+            "Press Escape Before Opening",
+            true,
+            "Simulate an ESC key press before opening ConfigDrawers to release the mouse cursor in games that capture it."
         );
     }
 }

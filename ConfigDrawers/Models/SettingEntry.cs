@@ -79,6 +79,7 @@ public class SettingEntry
     }
 
     public bool CanReset => CanEdit && (!HideDefaultButton || IsAdminOnly) && DefaultValue != null;
+    public event Action? OnSettingValueChanged;
 
     public SettingEntry(ConfigEntryBase configEntry)
     {
@@ -91,6 +92,27 @@ public class SettingEntry
         ExtractAttributes();
         ExtractAcceptableValues();
         ResetBuffer();
+
+        if (ConfigEntry.ConfigFile != null)
+        {
+            ConfigEntry.ConfigFile.SettingChanged += OnConfigFileSettingChanged;
+            ConfigEntry.ConfigFile.ConfigReloaded += OnConfigFileReloaded;
+        }
+    }
+
+    private void OnConfigFileSettingChanged(object sender, SettingChangedEventArgs args)
+    {
+        if (args != null && args.ChangedSetting == ConfigEntry)
+        {
+            ResetBuffer();
+            OnSettingValueChanged?.Invoke();
+        }
+    }
+
+    private void OnConfigFileReloaded(object sender, EventArgs args)
+    {
+        ResetBuffer();
+        OnSettingValueChanged?.Invoke();
     }
 
     private void ExtractAttributes()
