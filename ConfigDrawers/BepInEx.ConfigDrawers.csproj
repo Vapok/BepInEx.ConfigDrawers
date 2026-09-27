@@ -5,11 +5,11 @@
     <Nullable>enable</Nullable>
     <AssemblyName>BepInEx.ConfigDrawers</AssemblyName>
     <RootNamespace>BepInEx.ConfigDrawers</RootNamespace>
-    <Version>1.1.0</Version>
+    <Version>1.1.1</Version>
     <PackageId>BepInEx_ConfigDrawers</PackageId>
     <ReferencesRoot Condition="'$(ReferencesRoot)' == ''">/home/vapok/Modding/References</ReferencesRoot>
     <BEPINEX_CORE>$(ReferencesRoot)/BepInEx/5.4.2350/BepInEx/core</BEPINEX_CORE>
-    <UNITY_MANAGED>$(ReferencesRoot)/Valheim/1.0.15/Managed</UNITY_MANAGED>
+    <UNITY_MANAGED>$(ReferencesRoot)/Valheim/1.0.16/Managed</UNITY_MANAGED>
     <ReleaseRoot Condition="'$(ReleaseRoot)' == ''">/home/vapok/Modding/Releases</ReleaseRoot>
     <DevPluginsFolder Condition="'$(DevPluginsFolder)' == ''">/home/vapok/Modding/Gale Profiles/Default/BepInEx/plugins</DevPluginsFolder>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>

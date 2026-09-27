@@ -206,12 +206,7 @@ internal static class DynamicInputBlocker
 
             if (returnType == typeof(bool))
             {
-                if (parameters.Length == 1 && parameters[0].ParameterType == typeof(int) && name.Contains("Button"))
-                {
-                    continue;
-                }
-
-                if (name.StartsWith("Get") || name.Contains("Key") || name.Contains("Button") || name.Contains("Input") || name.Contains("Press"))
+                if (ShouldSuppressBoolMethod(method))
                 {
                     if (PatchMethod(method, _suppressBoolPrefix))
                     {
@@ -253,17 +248,20 @@ internal static class DynamicInputBlocker
 
         if (triggerMethod is MethodInfo triggerMethodInfo && !_patchedMethods.Contains(triggerMethodInfo))
         {
-            string trigName = triggerMethodInfo.Name;
-            if (!trigName.Contains("Mouse") && !trigName.Contains("Scroll") && !trigName.Contains("Wheel"))
+            if (triggerMethodInfo.ReturnType == typeof(bool))
             {
-                if (triggerMethodInfo.ReturnType == typeof(bool))
+                if (ShouldSuppressBoolMethod(triggerMethodInfo))
                 {
                     if (PatchMethod(triggerMethodInfo, _suppressBoolPrefix))
                     {
                         attachedCount++;
                     }
                 }
-                else if (triggerMethodInfo.ReturnType == typeof(void))
+            }
+            else if (triggerMethodInfo.ReturnType == typeof(void))
+            {
+                string trigName = triggerMethodInfo.Name;
+                if (!trigName.Contains("Mouse") && !trigName.Contains("Scroll") && !trigName.Contains("Wheel"))
                 {
                     if (PatchMethod(triggerMethodInfo, _suppressVoidPrefix))
                     {
@@ -279,6 +277,54 @@ internal static class DynamicInputBlocker
             DetachDiscoveryHooks();
             _logger?.LogInfo($"[ConfigDrawers] Attached keyboard suppression to {attachedCount} methods on {gameType.Name}.");
         }
+    }
+
+    private static bool ShouldSuppressBoolMethod(MethodInfo method)
+    {
+        if (method.IsGenericMethod || method.IsAbstract || method.IsSpecialName)
+        {
+            return false;
+        }
+
+        string name = method.Name;
+        if (name.Contains("<") || (method.DeclaringType != null && method.DeclaringType.Name.Contains("<")))
+        {
+            return false;
+        }
+
+        if (name.Contains("Mouse") || name.Contains("Cursor") || name.Contains("Pointer") || name.Contains("Scroll") || name.Contains("Wheel"))
+        {
+            return false;
+        }
+
+        ParameterInfo[] parameters = method.GetParameters();
+        for (int i = 0; i < parameters.Length; i++)
+        {
+            if (parameters[i].IsOut || parameters[i].ParameterType.IsByRef)
+            {
+                return false;
+            }
+        }
+
+        if (parameters.Length == 1 && parameters[0].ParameterType == typeof(int) && name.Contains("Button"))
+        {
+            return false;
+        }
+
+        if (name.Contains("Valid") || name.Contains("Available") || name.Contains("Supported") ||
+            name.Contains("Layout") || name.Contains("Clear") || name.Contains("Reset") ||
+            name.Contains("ToKey") || name.Contains("ToGamepad") || name.Contains("ToMouse") ||
+            name.StartsWith("Should") || name.StartsWith("Can"))
+        {
+            return false;
+        }
+
+        if (name.StartsWith("Is") && !name.Contains("Down") && !name.Contains("Up") && !name.Contains("Press") && !name.Contains("Held"))
+        {
+            return false;
+        }
+
+        return name.StartsWith("Get") || name.Contains("Key") || name.Contains("Button") || name.Contains("Input") || name.Contains("Press");
     }
 
     private static bool PatchMethod(MethodInfo targetMethod, MethodInfo? prefix)

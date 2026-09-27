@@ -4,6 +4,10 @@ All notable changes to **BepInEx.ConfigDrawers** are documented here.
 
 ---
 
+## [1.1.1] - Hotkey Validation Fix
+
+- Fixed an issue where background input blocking prevented other mods from validating or assigning custom hotkeys while the menu was open.
+
 ## [1.1.0] - Live Config Sync & Cursor Release
 
 - **Live Config Updates**: ConfigDrawers now automatically watches config files on disk and updates settings in memory and in the menu when changed outside the game.
