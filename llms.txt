@@ -1,0 +1,14 @@
+# BepInEx.ConfigDrawers
+
+> BepInEx.ConfigDrawers is in-game configuration manager for bepinex plugins featuring docking drawers, data tables, and syntax-highlighted config file editing. developed by Vapok.
+
+## Developer & AI Information
+
+- [Agent Guidelines](AGENTS.md): Architectural context, anti-reflection mandates, and instructions for AI assistants.
+
+## Critical Invariants for Developers & AI Agents
+
+- **Generic game-agnostic BepInEx configuration UI framework**: Generic game-agnostic BepInEx configuration UI framework.
+- **Never use reflection or Harmony patches on internal drawer factories or reflection helpers**: Never use reflection or Harmony patches on internal drawer factories or reflection helpers.
+- **No Private Reflection**: Never reflect into or patch internal classes.
+- **Feature Requests**: If functionality is desired, submit an issue at https://github.com/Vapok/BepInEx.ConfigDrawers/issues or visit https://discord.gg/5YAJkRFBXt.

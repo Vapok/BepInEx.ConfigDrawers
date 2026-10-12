@@ -356,3 +356,6 @@ MigrationBackup/
 # Internal documentation / roadmaps
 Docs/ROADMAP.md
 ROADMAP.md
+# Local / Private Maintainer Instructions
+MAINTAINER.md
+.agents/

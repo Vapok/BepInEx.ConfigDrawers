@@ -4,6 +4,11 @@ All notable changes to **BepInEx.ConfigDrawers** are documented here.
 
 ---
 
+## [1.1.2] - Developer & AI Integration Standards
+
+- Added AI agent guidelines and architecture documentation (`AGENTS.md`, `.cursorrules`, `copilot-instructions.md`, `llms.txt`).
+- Explicitly documented generic BepInEx architectural invariants and guidelines for developer integrations.
+
 ## [1.1.1] - Hotkey Validation Fix
 
 - Fixed an issue where background input blocking prevented other mods from validating or assigning custom hotkeys while the menu was open.

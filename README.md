@@ -102,3 +102,12 @@ Maintained by **Vapok**.
 - **Discord**: [Vapok Gaming Community](https://discord.gg/5YAJkRFBXt)
 - **GitHub**: [Vapok/BepInEx.ConfigDrawers](https://github.com/Vapok/BepInEx.ConfigDrawers)
 - **Thunderstore**: [Vapok Mods](https://thunderstore.io/c/valheim/p/Vapok/)
+
+---
+
+## 🔌 For Mod Developers & AI Coding Agents
+
+* 🤖 **[AI Agent Rules & Invariants](AGENTS.md)**: Guidelines for AI assistants (Cursor, Claude, Copilot, ChatGPT, Gemini).
+* ⚠️ **Integration Policy**: BepInEx.ConfigDrawers is a self-contained mod without a public API. Do not use reflection or Harmony patches on internal classes.
+* 💡 **Feature Requests**: If you need integration hooks or functionality, open a [Feature Request](https://github.com/Vapok/BepInEx.ConfigDrawers/issues) or reach out in our [Discord](https://discord.gg/5YAJkRFBXt).
+
