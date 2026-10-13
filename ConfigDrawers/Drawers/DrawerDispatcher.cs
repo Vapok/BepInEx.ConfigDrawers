@@ -62,6 +62,11 @@ public static class DrawerDispatcher
             return BoolDrawer.Draw(parent, entry);
         }
 
+        if (EnumFlagsDrawer.IsEnumFlags(entry))
+        {
+            return EnumFlagsDrawer.Draw(parent, entry);
+        }
+
         if (entry.SettingType.IsEnum || entry.AcceptableValuesList != null)
         {
             return EnumDrawer.Draw(parent, entry);
