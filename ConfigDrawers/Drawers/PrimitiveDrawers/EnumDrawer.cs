@@ -17,6 +17,11 @@ public static class EnumDrawer
             throw new ArgumentNullException(entry == null ? nameof(entry) : nameof(parent));
         }
 
+        if (EnumFlagsDrawer.IsEnumFlags(entry))
+        {
+            return EnumFlagsDrawer.Draw(parent, entry);
+        }
+
         string[] names;
         Array values;
 

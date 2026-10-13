@@ -4,6 +4,11 @@ All notable changes to **BepInEx.ConfigDrawers** are documented here.
 
 ---
 
+## [1.1.3] - Multi-Flag Enum Selection
+
+- **Multi-Flag Enum Selection**: Added a dedicated multi-select dropdown for settings using enum flags, allowing multiple options to be toggled on or off at the same time.
+- **Interactive Flags Menu**: The dropdown menu now displays checkbox badges (`[X]` / `[ ]`) and stays open while toggling flags until you click the Done button or click outside the menu.
+
 ## [1.1.2] - Developer & AI Integration Standards
 
 - Added AI agent guidelines and architecture documentation (`AGENTS.md`, `.cursorrules`, `copilot-instructions.md`, `llms.txt`).
